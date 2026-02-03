@@ -6,7 +6,9 @@ add_executable(${PROJECT_NAME}
         router.h
         controller.cpp
         controller.h
-        model.h)
+        model.h
+        persistence.cpp
+        persistence.h)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
         prapancha::json
