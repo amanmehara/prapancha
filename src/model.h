@@ -5,22 +5,21 @@
 #ifndef PRAPANCHA_MODEL_H
 #define PRAPANCHA_MODEL_H
 
-#include <array>
 #include <concepts>
 #include <string>
 
-namespace mehara::prapancha {
+#include "uuid.h"
 
-    using uuid_t = std::array<uint8_t, 16>;
+namespace mehara::prapancha {
 
     template<typename T>
     concept Model = requires(T m) {
         { T::ModelName } -> std::convertible_to<std::string_view>;
-        { m.id } -> std::same_as<uuid_t &>;
+        { m.id } -> std::same_as<UUID &>;
     };
 
     struct BaseModel {
-        uuid_t id{};
+        UUID id{};
     };
 
     struct Author : BaseModel {
@@ -33,7 +32,7 @@ namespace mehara::prapancha {
     struct Post : BaseModel {
         static constexpr std::string_view ModelName = "post";
 
-        uuid_t author_id;
+        UUID author_id;
         std::string title;
         std::string content;
     };

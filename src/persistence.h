@@ -7,16 +7,14 @@
 
 #include <filesystem>
 #include <fstream>
-#include <sstream>
 
 #include "model.h"
+#include "uuid.h"
 
 namespace mehara::prapancha {
 
-    std::string uuid_to_hex(const uuid_t &id);
-
     template<typename P, typename T>
-    concept PersistencePolicy = requires(P policy, const T &model, const uuid_t &id) {
+    concept PersistencePolicy = requires(P policy, const T &model, const UUID &id) {
         { policy.save(model) } -> std::same_as<void>;
         { policy.load(id) } -> std::same_as<std::optional<T>>;
         { policy.all() } -> std::same_as<std::vector<T>>;
@@ -37,7 +35,7 @@ namespace mehara::prapancha {
             file.write(reinterpret_cast<const char *>(&model), sizeof(T));
         }
 
-        std::optional<T> load(const uuid_t &id) {
+        std::optional<T> load(const UUID &id) {
             auto path = get_path(id);
             if (!std::filesystem::exists(path)) {
                 return std::nullopt;
@@ -65,14 +63,12 @@ namespace mehara::prapancha {
             return results;
         }
 
-        [[nodiscard]] bool remove(const uuid_t &id) const { return std::filesystem::remove(get_path(id)); }
+        [[nodiscard]] bool remove(const UUID &id) const { return std::filesystem::remove(get_path(id)); }
 
     private:
         std::filesystem::path _dir;
 
-        [[nodiscard]] std::filesystem::path get_path(const uuid_t &id) const {
-            return _dir / (uuid_to_hex(id) + ".bin");
-        }
+        [[nodiscard]] std::filesystem::path get_path(const UUID &id) const { return _dir / (id.to_hex() + ".bin"); }
     };
 
     class PersistenceFactory {

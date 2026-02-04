@@ -7,8 +7,9 @@ add_executable(${PROJECT_NAME}
         controller.cpp
         controller.h
         model.h
-        persistence.cpp
-        persistence.h)
+        persistence.h
+        uuid.cpp
+        uuid.h)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
         prapancha::json
