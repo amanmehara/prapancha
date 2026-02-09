@@ -9,6 +9,13 @@ add_compile_options(-march=native)
 include(FetchContent)
 
 FetchContent_Declare(
+        googletest
+        GIT_REPOSITORY https://github.com/google/googletest.git
+        GIT_TAG v1.17.0
+)
+FetchContent_MakeAvailable(googletest)
+
+FetchContent_Declare(
         jsoncpp
         GIT_REPOSITORY https://github.com/open-source-parsers/jsoncpp.git
         GIT_TAG 1.9.6
@@ -37,4 +44,5 @@ if (TARGET drogon)
     add_library(prapancha::web ALIAS drogon)
 endif ()
 
+enable_testing()
 add_subdirectory(src)
