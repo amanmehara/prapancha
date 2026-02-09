@@ -33,15 +33,6 @@ namespace mehara::prapancha {
     };
 
     template<typename T, Model M, PersistencePolicy<M> P = FilePersistencePolicy<M>>
-    class ResourceController : public BaseController<T> {
-    protected:
-        P _persistence;
-
-    public:
-        explicit ResourceController(P persistence) : _persistence(std::move(persistence)) {}
-    };
-
-    template<typename T, Model M, PersistencePolicy<M> P = FilePersistencePolicy<M>>
     class ModelController : public BaseController<T> {
     protected:
         P _persistence;
