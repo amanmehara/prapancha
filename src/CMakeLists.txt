@@ -9,7 +9,8 @@ add_executable(${PROJECT_NAME}
         model.h
         persistence.h
         uuid.cpp
-        uuid.h)
+        uuid.h
+        codec.h)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
         prapancha::json
