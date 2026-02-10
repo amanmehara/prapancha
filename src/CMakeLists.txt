@@ -1,16 +1,17 @@
 add_executable(${PROJECT_NAME}
+        codec.h
+        controller.cpp
+        controller.h
         main.cpp
+        model.h
+        persistence.h
         prapancha.cpp
         prapancha.h
         router.cpp
         router.h
-        controller.cpp
-        controller.h
-        model.h
-        persistence.h
         uuid.cpp
         uuid.h
-        codec.h)
+)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
         prapancha::json
