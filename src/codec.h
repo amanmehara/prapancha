@@ -6,14 +6,21 @@
 #define PRAPANCHA_CODEC_H
 
 #include <concepts>
-#include <iosfwd>
+
+#include "model.h"
 
 namespace mehara::prapancha {
 
     template<typename C, typename M>
-    concept Codec = requires(std::ostream &os, std::istream &is, M &model) {
-        { C::encode(os, model) } -> std::same_as<void>;
-        { C::decode(is, model) } -> std::same_as<void>;
+    concept Codec = requires(const M &model, const typename C::EncodedType &data) {
+        requires Model<M>;
+        typename C::EncodedType;
+        { C::encode(model) } -> std::same_as<typename C::EncodedType>;
+        { C::decode(data) } -> std::same_as<std::optional<M>>;
+    };
+
+    template<Model M>
+    struct BinaryCodec {
     };
 
 } // namespace mehara::prapancha

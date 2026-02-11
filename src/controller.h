@@ -18,7 +18,6 @@ namespace mehara::prapancha {
     template<typename T>
     concept Controller = requires(T t, const drogon::HttpRequestPtr &request, drogon::AdviceCallback &&callback) {
         { T::ControllerName } -> std::convertible_to<std::string_view>;
-
         { t.handle(request, std::move(callback)) } -> std::same_as<void>;
     };
 
@@ -32,7 +31,7 @@ namespace mehara::prapancha {
         }
     };
 
-    template<typename T, Model M, PersistencePolicy<M> P = FilePersistencePolicy<M>>
+    template<typename T, Model M, PersistencePolicy<M> P>
     class ModelController : public BaseController<T> {
     protected:
         P _persistence;

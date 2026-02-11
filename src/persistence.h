@@ -8,20 +8,22 @@
 #include <filesystem>
 #include <fstream>
 
+#include "codec.h"
 #include "model.h"
 #include "uuid.h"
 
 namespace mehara::prapancha {
 
-    template<typename P, typename T>
-    concept PersistencePolicy = requires(P policy, const T &model, const UUID &id) {
+    template<typename P, typename M>
+    concept PersistencePolicy = requires(P policy, const M &model, const UUID &id) {
+        requires Model<M>;
         { policy.save(model) } -> std::same_as<void>;
-        { policy.load(id) } -> std::same_as<std::optional<T>>;
-        { policy.all() } -> std::same_as<std::vector<T>>;
+        { policy.load(id) } -> std::same_as<std::optional<M>>;
+        { policy.all() } -> std::same_as<std::vector<M>>;
         { policy.remove(id) } -> std::same_as<bool>;
     };
 
-    template<Model T>
+    template<Model M, Codec<M> C>
     class FilePersistencePolicy {
     public:
         explicit FilePersistencePolicy(std::filesystem::path path) : _dir(std::move(path)) {
@@ -30,33 +32,40 @@ namespace mehara::prapancha {
             }
         }
 
-        void save(const T &model) {
+        void save(const M &model) {
+            auto data = C::encode(model);
             std::ofstream file(get_path(model.id), std::ios::binary | std::ios::trunc);
-            file.write(reinterpret_cast<const char *>(&model), sizeof(T));
+            file.write(reinterpret_cast<const char *>(data.data()), data.size());
         }
 
-        std::optional<T> load(const UUID &id) {
-            auto path = get_path(id);
-            if (!std::filesystem::exists(path)) {
+        std::optional<M> load(const UUID &id) {
+            const auto path = get_path(id);
+            std::ifstream file(path, std::ios::binary | std::ios::ate);
+            if (!file.is_open()) {
                 return std::nullopt;
             }
-            T model;
-            std::ifstream file(path, std::ios::binary);
-            file.read(reinterpret_cast<char *>(&model), sizeof(T));
-            return model;
+            const std::streamsize size = file.tellg();
+            if (size <= 0) {
+                return std::nullopt;
+            }
+            file.seekg(0, std::ios::beg);
+            typename C::EncodedType buffer(static_cast<std::size_t>(size));
+            if (!file.read(reinterpret_cast<char *>(buffer.data()), size)) {
+                return std::nullopt;
+            }
+            return C::decode(buffer);
         }
 
-        std::vector<T> all() {
-            std::vector<T> results;
+        std::vector<M> all() {
+            std::vector<M> results;
             if (!std::filesystem::exists(_dir)) {
                 return results;
             }
             for (const auto &entry: std::filesystem::directory_iterator(_dir)) {
-                if (entry.path().extension() == ".bin") {
-                    T model;
-                    if (std::ifstream file(entry.path(), std::ios::binary);
-                        file.read(reinterpret_cast<char *>(&model), sizeof(T))) {
-                        results.push_back(std::move(model));
+                if (entry.is_regular_file() && entry.path().extension() == ".bin") {
+                    auto id_str = entry.path().stem().string();
+                    if (auto model = load(UUID::from_hex(id_str))) {
+                        results.push_back(std::move(*model));
                     }
                 }
             }
@@ -73,9 +82,9 @@ namespace mehara::prapancha {
 
     class PersistenceFactory {
     public:
-        template<Model T>
+        template<Model M, Codec<M> C>
         static auto create_persistence(std::string_view root_path) {
-            return FilePersistencePolicy<T>(std::filesystem::path(root_path) / T::ModelName);
+            return FilePersistencePolicy<M, C>(std::filesystem::path(root_path) / M::ModelName);
         }
     };
 
