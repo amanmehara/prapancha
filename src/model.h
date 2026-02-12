@@ -29,6 +29,8 @@ namespace mehara::prapancha {
 
         explicit BaseModel(const BaseModel &other) :
             id(other.id), version(other.version + 1), created_at(std::chrono::milliseconds{id.timestamp_ms()}) {}
+
+        explicit BaseModel(const UUID uuid, uint64_t v, Timestamp ts) : id(uuid), version(v), created_at(ts) {}
     };
 
 
@@ -50,19 +52,24 @@ namespace mehara::prapancha {
 
         const State state;
 
-        static Author create(State s) { return {UUID::generate(), std::move(s)}; }
+        static Author create(State s) { return Author(UUID::generate(), std::move(s)); }
 
         [[nodiscard]] Author patch(State next_state) const {
             if (this->state == next_state) {
                 return *this;
             }
-            return {*this, std::move(next_state)};
+            return Author(*this, std::move(next_state));
         }
 
-    private:
-        Author(const UUID id, State s) : BaseModel(id), state(std::move(s)) {}
+        static Author rehydrate(UUID id, uint64_t v, Timestamp ts, State s) { return Author(id, v, ts, std::move(s)); }
 
-        Author(const Author &other, State s) : BaseModel(other), state(std::move(s)) {}
+    private:
+        explicit Author(const UUID id, State s) : BaseModel(id), state(std::move(s)) {}
+
+        explicit Author(const Author &other, State s) : BaseModel(other), state(std::move(s)) {}
+
+        explicit Author(const UUID uuid, uint64_t v, Timestamp ts, State s) :
+            BaseModel(uuid, v, ts), state(std::move(s)) {}
     };
 
     struct Post : BaseModel {
@@ -78,19 +85,24 @@ namespace mehara::prapancha {
 
         const State state;
 
-        static Post create(State s) { return {UUID::generate(), std::move(s)}; }
+        static Post create(State s) { return Post(UUID::generate(), std::move(s)); }
+
+        static Post rehydrate(UUID id, uint64_t v, Timestamp ts, State s) { return Post(id, v, ts, std::move(s)); }
 
         [[nodiscard]] Post patch(State next_state) const {
             if (this->state == next_state) {
                 return *this;
             }
-            return {*this, std::move(next_state)};
+            return Post(*this, std::move(next_state));
         }
 
     private:
-        Post(UUID id, State s) : BaseModel(id), state(std::move(s)) {}
+        explicit Post(UUID id, State s) : BaseModel(id), state(std::move(s)) {}
 
-        Post(const Post &other, State s) : BaseModel(other), state(std::move(s)) {}
+        explicit Post(const Post &other, State s) : BaseModel(other), state(std::move(s)) {}
+
+        explicit Post(const UUID uuid, uint64_t v, Timestamp ts, State s) :
+            BaseModel(uuid, v, ts), state(std::move(s)) {}
     };
 
     static_assert(Model<Author>, "Author does not satisfy the Model concept.");
