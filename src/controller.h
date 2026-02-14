@@ -11,6 +11,7 @@
 
 #include <drogon/drogon.h>
 
+#include "codec.h"
 #include "persistence.h"
 #include "uuid.h"
 
@@ -38,8 +39,8 @@ namespace mehara::prapancha {
         static void handle(const drogon::HttpRequestPtr &request, drogon::AdviceCallback &&callback);
     };
 
-    template<typename T, Model M, PersistencePolicy<M> P, typename C>
-        requires Codec<C, M> && Codec<C, std::vector<M>>
+    template<typename T, Model M, PersistencePolicy<M> P, template<typename> typename C>
+        requires Codec<C<M>, M> && Codec<C<std::vector<M>>, std::vector<M>>
     class ModelController : public BaseController<T> {
     protected:
         P _persistence;
@@ -74,22 +75,22 @@ namespace mehara::prapancha {
             auto id_str = request->getParameter("id");
             if (id_str.empty()) {
                 auto items = _persistence.all();
-                callback(drogon::HttpResponse::newHttpJsonResponse(C::encode(items)));
+                callback(drogon::HttpResponse::newHttpJsonResponse(C<std::vector<M>>::encode(items)));
             } else {
                 auto id_opt = UUID::from_hex(id_str);
                 auto item = id_opt ? _persistence.load(*id_opt) : std::nullopt;
-                item ? callback(drogon::HttpResponse::newHttpJsonResponse(C::encode(*item)))
+                item ? callback(drogon::HttpResponse::newHttpJsonResponse(C<M>::encode(*item)))
                      : callback(drogon::HttpResponse::newNotFoundResponse());
             }
         }
 
         void on_create(const drogon::HttpRequestPtr &request, drogon::AdviceCallback &&callback) {
-            auto json_ptr = request->getJsonObject();
-            if (!json_ptr) {
+            const auto body = request->getBody();
+            if (body.empty()) {
                 callback(drogon::HttpResponse::newHttpResponse(drogon::k400BadRequest, drogon::CT_TEXT_PLAIN));
                 return;
             }
-            auto model_opt = C::decode(*json_ptr);
+            auto model_opt = C<M>::decode(std::string(body));
             if (!model_opt) {
                 callback(drogon::HttpResponse::newHttpResponse(drogon::k422UnprocessableEntity, drogon::CT_TEXT_PLAIN));
                 return;
@@ -100,12 +101,12 @@ namespace mehara::prapancha {
 
         void on_update(const drogon::HttpRequestPtr &request, drogon::AdviceCallback &&callback) {
             auto id_opt = UUID::from_hex(request->getParameter("id"));
-            auto json_ptr = request->getJsonObject();
-            if (!id_opt || !json_ptr) {
+            const auto body = request->getBody();
+            if (!id_opt || body.empty()) {
                 callback(drogon::HttpResponse::newHttpResponse(drogon::k400BadRequest, drogon::CT_TEXT_PLAIN));
                 return;
             }
-            auto update_opt = C::decode(*json_ptr);
+            auto update_opt = C<M>::decode(std::string(body));
             auto existing = _persistence.load(*id_opt);
             if (existing && update_opt) {
                 _persistence.save(existing->patch(update_opt->state));
@@ -125,14 +126,14 @@ namespace mehara::prapancha {
         }
     };
 
-    template<PersistencePolicy<Author> P, typename C>
+    template<PersistencePolicy<Author> P, template<typename> typename C>
     class AuthorController : public ModelController<AuthorController<P, C>, Author, P, C> {
     public:
         static constexpr std::string_view ControllerName = "AuthorController";
         using ModelController<AuthorController, Author, P, C>::ModelController;
     };
 
-    template<PersistencePolicy<Post> P, typename C>
+    template<PersistencePolicy<Post> P, template<typename> typename C>
     class PostController : public ModelController<PostController<P, C>, Post, P, C> {
     public:
         static constexpr std::string_view ControllerName = "PostController";

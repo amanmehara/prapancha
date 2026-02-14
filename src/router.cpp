@@ -4,6 +4,11 @@
 
 #include "router.h"
 
+#include "codec.h"
+#include "controller.h"
+#include "model.h"
+#include "persistence.h"
+
 namespace mehara::prapancha {
 
     template<typename T>
@@ -16,8 +21,28 @@ namespace mehara::prapancha {
     }
 
     void Router::configure(drogon::HttpAppFramework &app) {
-        auto rootController = std::make_shared<RootController>();
+        const auto rootController = std::make_shared<RootController>();
         app.registerHandler("/", toHandler(rootController), {drogon::Get});
+
+        const std::string rootPath = std::filesystem::absolute("./persistence").string();
+
+        using AuthorPersistence = FilePersistencePolicy<Author, JsonCodec<Author>>;
+        using AuthorController = AuthorController<AuthorPersistence, JsonCodec>;
+        AuthorPersistence authorPersistence =
+                PersistenceFactory::create_persistence<Author, JsonCodec<Author>>(rootPath);
+        const auto authorController = std::make_shared<AuthorController>(std::move(authorPersistence));
+
+        app.registerHandler("/authors", toHandler(authorController), {drogon::Get, drogon::Post});
+        app.registerHandler("/authors?id={id}", toHandler(authorController),
+                            {drogon::Get, drogon::Put, drogon::Delete});
+
+        using PostPersistence = FilePersistencePolicy<Post, JsonCodec<Post>>;
+        using PostController = PostController<PostPersistence, JsonCodec>;
+        PostPersistence postPersistence = PersistenceFactory::create_persistence<Post, JsonCodec<Post>>(rootPath);
+        const auto postController = std::make_shared<PostController>(std::move(postPersistence));
+
+        app.registerHandler("/posts", toHandler(postController), {drogon::Get, drogon::Post});
+        app.registerHandler("/posts?id={id}", toHandler(postController), {drogon::Get, drogon::Put, drogon::Delete});
     }
 
 } // namespace mehara::prapancha

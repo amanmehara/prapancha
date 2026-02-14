@@ -23,7 +23,8 @@ namespace mehara::prapancha {
         { policy.remove(id) } -> std::same_as<bool>;
     };
 
-    template<Model M, Codec<M> C>
+    template<typename M, typename C>
+        requires Codec<C, M> && std::same_as<typename C::EncodedType, std::string>
     class FilePersistencePolicy {
     public:
         explicit FilePersistencePolicy(std::filesystem::path path) : _dir(std::move(path)) {
@@ -33,9 +34,9 @@ namespace mehara::prapancha {
         }
 
         void save(const M &model) {
-            auto data = C::encode(model);
+            const std::string data = C::encode(model);
             std::ofstream file(get_path(model.id), std::ios::binary | std::ios::trunc);
-            file.write(reinterpret_cast<const char *>(data.data()), data.size());
+            file.write(data.data(), static_cast<std::streamsize>(data.size()));
         }
 
         std::optional<M> load(const UUID &id) {
@@ -49,8 +50,8 @@ namespace mehara::prapancha {
                 return std::nullopt;
             }
             file.seekg(0, std::ios::beg);
-            typename C::EncodedType buffer(static_cast<std::size_t>(size));
-            if (!file.read(reinterpret_cast<char *>(buffer.data()), size)) {
+            std::string buffer(static_cast<std::size_t>(size), '\0');
+            if (!file.read(buffer.data(), size)) {
                 return std::nullopt;
             }
             return C::decode(buffer);
@@ -64,7 +65,7 @@ namespace mehara::prapancha {
             for (const auto &entry: std::filesystem::directory_iterator(_dir)) {
                 if (entry.is_regular_file() && entry.path().extension() == ".bin") {
                     auto id_str = entry.path().stem().string();
-                    if (auto model = load(UUID::from_hex(id_str))) {
+                    if (auto model = load(UUID::from_hex(id_str).value())) {
                         results.push_back(std::move(*model));
                     }
                 }
@@ -83,7 +84,7 @@ namespace mehara::prapancha {
     class PersistenceFactory {
     public:
         template<Model M, Codec<M> C>
-        static auto create_persistence(std::string_view root_path) {
+        static auto create_persistence(const std::string_view root_path) {
             return FilePersistencePolicy<M, C>(std::filesystem::path(root_path) / M::ModelName);
         }
     };
