@@ -81,13 +81,16 @@ namespace mehara::prapancha {
         [[nodiscard]] std::filesystem::path get_path(const UUID &id) const { return _dir / (id.to_hex() + ".bin"); }
     };
 
-    class PersistenceFactory {
-    public:
-        template<Model M, Codec<M> C>
-        static auto create_persistence(const std::string_view root_path) {
-            return FilePersistence<M, C>(std::filesystem::path(root_path) / M::ModelName);
+    namespace persistence {
+
+        template<template<typename, typename> typename P, Model M, template<typename> typename C, typename... Args>
+            requires Model<M> && std::is_constructible_v<P<M, C<M>>, Args...> && Codec<C<M>, M> &&
+                     Persistence<P<M, C<M>>, M>
+        [[nodiscard]] auto create(Args &&...args) {
+            return P<M, C<M>>(std::forward<Args>(args)...);
         }
-    };
+
+    } // namespace persistence
 
 } // namespace mehara::prapancha
 
