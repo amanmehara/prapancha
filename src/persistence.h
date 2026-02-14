@@ -15,7 +15,7 @@
 namespace mehara::prapancha {
 
     template<typename P, typename M>
-    concept PersistencePolicy = requires(P policy, const M &model, const UUID &id) {
+    concept Persistence = requires(P policy, const M &model, const UUID &id) {
         requires Model<M>;
         { policy.save(model) } -> std::same_as<void>;
         { policy.load(id) } -> std::same_as<std::optional<M>>;
@@ -25,9 +25,9 @@ namespace mehara::prapancha {
 
     template<typename M, typename C>
         requires Codec<C, M> && std::same_as<typename C::EncodedType, std::string>
-    class FilePersistencePolicy {
+    class FilePersistence {
     public:
-        explicit FilePersistencePolicy(std::filesystem::path path) : _dir(std::move(path)) {
+        explicit FilePersistence(std::filesystem::path path) : _dir(std::move(path)) {
             if (!std::filesystem::exists(_dir)) {
                 std::filesystem::create_directories(_dir);
             }
@@ -85,7 +85,7 @@ namespace mehara::prapancha {
     public:
         template<Model M, Codec<M> C>
         static auto create_persistence(const std::string_view root_path) {
-            return FilePersistencePolicy<M, C>(std::filesystem::path(root_path) / M::ModelName);
+            return FilePersistence<M, C>(std::filesystem::path(root_path) / M::ModelName);
         }
     };
 

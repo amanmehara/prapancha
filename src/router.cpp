@@ -26,7 +26,7 @@ namespace mehara::prapancha {
 
         const std::string rootPath = std::filesystem::absolute("./persistence").string();
 
-        using AuthorPersistence = FilePersistencePolicy<Author, JsonCodec<Author>>;
+        using AuthorPersistence = FilePersistence<Author, JsonCodec<Author>>;
         using AuthorController = AuthorController<AuthorPersistence, JsonCodec>;
         AuthorPersistence authorPersistence =
                 PersistenceFactory::create_persistence<Author, JsonCodec<Author>>(rootPath);
@@ -36,7 +36,7 @@ namespace mehara::prapancha {
         app.registerHandler("/authors?id={id}", toHandler(authorController),
                             {drogon::Get, drogon::Put, drogon::Delete});
 
-        using PostPersistence = FilePersistencePolicy<Post, JsonCodec<Post>>;
+        using PostPersistence = FilePersistence<Post, JsonCodec<Post>>;
         using PostController = PostController<PostPersistence, JsonCodec>;
         PostPersistence postPersistence = PersistenceFactory::create_persistence<Post, JsonCodec<Post>>(rootPath);
         const auto postController = std::make_shared<PostController>(std::move(postPersistence));

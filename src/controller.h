@@ -39,7 +39,7 @@ namespace mehara::prapancha {
         static void handle(const drogon::HttpRequestPtr &request, drogon::AdviceCallback &&callback);
     };
 
-    template<typename T, Model M, PersistencePolicy<M> P, template<typename> typename C>
+    template<typename T, Model M, Persistence<M> P, template<typename> typename C>
         requires Codec<C<M>, M> && Codec<C<std::vector<M>>, std::vector<M>>
     class ModelController : public BaseController<T> {
     protected:
@@ -126,14 +126,14 @@ namespace mehara::prapancha {
         }
     };
 
-    template<PersistencePolicy<Author> P, template<typename> typename C>
+    template<Persistence<Author> P, template<typename> typename C>
     class AuthorController : public ModelController<AuthorController<P, C>, Author, P, C> {
     public:
         static constexpr std::string_view ControllerName = "AuthorController";
         using ModelController<AuthorController, Author, P, C>::ModelController;
     };
 
-    template<PersistencePolicy<Post> P, template<typename> typename C>
+    template<Persistence<Post> P, template<typename> typename C>
     class PostController : public ModelController<PostController<P, C>, Post, P, C> {
     public:
         static constexpr std::string_view ControllerName = "PostController";
