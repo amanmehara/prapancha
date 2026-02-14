@@ -18,6 +18,13 @@ namespace mehara::prapancha {
 
     using Timestamp = std::chrono::sys_time<std::chrono::milliseconds>;
 
+    // The tag type
+    struct increment_version_t {
+        explicit increment_version_t() = default;
+    };
+    // The tag instance used for dispatch
+    inline constexpr increment_version_t increment_version{};
+
     struct BaseModel {
         const UUID id;
         const uint64_t version;
@@ -27,10 +34,14 @@ namespace mehara::prapancha {
         explicit BaseModel(const UUID uuid) :
             id(uuid), version(1), created_at(std::chrono::milliseconds{id.timestamp_ms()}) {}
 
-        explicit BaseModel(const BaseModel &other) :
-            id(other.id), version(other.version + 1), created_at(std::chrono::milliseconds{id.timestamp_ms()}) {}
+        BaseModel(const BaseModel &) = default;
+        BaseModel(BaseModel &&) noexcept = default;
 
-        explicit BaseModel(const UUID uuid, uint64_t v, Timestamp ts) : id(uuid), version(v), created_at(ts) {}
+        explicit BaseModel(const BaseModel &other, increment_version_t) :
+            id(other.id), version(other.version + 1), created_at(other.created_at) {}
+
+        explicit BaseModel(const UUID uuid, const uint64_t v, const Timestamp ts) :
+            id(uuid), version(v), created_at(ts) {}
     };
 
 
@@ -61,15 +72,17 @@ namespace mehara::prapancha {
             return Author(*this, std::move(next_state));
         }
 
-        static Author rehydrate(UUID id, uint64_t v, Timestamp ts, State s) { return Author(id, v, ts, std::move(s)); }
+        static Author rehydrate(const UUID id, const uint64_t v, const Timestamp ts, State s) {
+            return Author(id, v, ts, std::move(s));
+        }
 
     private:
         explicit Author(const UUID id, State s) : BaseModel(id), state(std::move(s)) {}
 
-        explicit Author(const Author &other, State s) : BaseModel(other), state(std::move(s)) {}
+        explicit Author(const Author &other, State s) : BaseModel(other, increment_version), state(std::move(s)) {}
 
-        explicit Author(const UUID uuid, uint64_t v, Timestamp ts, State s) :
-            BaseModel(uuid, v, ts), state(std::move(s)) {}
+        explicit Author(const UUID id, const uint64_t v, const Timestamp ts, State s) :
+            BaseModel(id, v, ts), state(std::move(s)) {}
     };
 
     struct Post : BaseModel {
@@ -87,22 +100,24 @@ namespace mehara::prapancha {
 
         static Post create(State s) { return Post(UUID::generate(), std::move(s)); }
 
-        static Post rehydrate(UUID id, uint64_t v, Timestamp ts, State s) { return Post(id, v, ts, std::move(s)); }
+        static Post rehydrate(const UUID id, const uint64_t v, const Timestamp ts, State s) {
+            return Post(id, v, ts, std::move(s));
+        }
 
         [[nodiscard]] Post patch(State next_state) const {
             if (this->state == next_state) {
-                return *this;
+                return *this; // Passive copy: version remains same
             }
             return Post(*this, std::move(next_state));
         }
 
     private:
-        explicit Post(UUID id, State s) : BaseModel(id), state(std::move(s)) {}
+        explicit Post(const UUID id, State s) : BaseModel(id), state(std::move(s)) {}
 
-        explicit Post(const Post &other, State s) : BaseModel(other), state(std::move(s)) {}
+        explicit Post(const Post &other, State s) : BaseModel(other, increment_version), state(std::move(s)) {}
 
-        explicit Post(const UUID uuid, uint64_t v, Timestamp ts, State s) :
-            BaseModel(uuid, v, ts), state(std::move(s)) {}
+        explicit Post(const UUID id, const uint64_t v, const Timestamp ts, State s) :
+            BaseModel(id, v, ts), state(std::move(s)) {}
     };
 
     static_assert(Model<Author>, "Author does not satisfy the Model concept.");
