@@ -1,5 +1,7 @@
 add_executable(${PROJECT_NAME}
         codec.h
+        configuration.h
+        configuration.cpp
         controller.cpp
         controller.h
         main.cpp
