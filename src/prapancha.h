@@ -7,7 +7,7 @@
 
 namespace mehara::prapancha {
 
-    void run();
+    void run(int argc, char *argv[]);
 
 }
 

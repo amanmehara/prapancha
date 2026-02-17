@@ -4,9 +4,9 @@
 
 #include "prapancha.h"
 
-int main() {
+int main(int argc, char *argv[]) {
 
-    mehara::prapancha::run();
+    mehara::prapancha::run(argc, argv);
 
     return 0;
 }

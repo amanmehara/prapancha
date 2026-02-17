@@ -3,19 +3,23 @@
 //
 
 #include "prapancha.h"
+
+#include "configuration.h"
 #include "router.h"
 
 #include <drogon/drogon.h>
 
 namespace mehara::prapancha {
 
-    void run() {
+    void run(int argc, char *argv[]) {
+        configuration::initialize(configuration::from_cli(argc, argv));
         auto &app = drogon::app();
-        Router::configure(app);
-        const auto &ip = "127.0.0.1";
-        const auto &port = 8080;
-        LOG_INFO << "प्रपञ्च — Prapancha starting on http://" << ip << ":" << port;
-        app.addListener(ip, port).setThreadNum(0).run();
+        auto router = std::make_shared<Router>(app, configuration::Active);
+        const auto &host = configuration::Active->network.host;
+        const auto &port = configuration::Active->network.port;
+        const auto &thread_count = configuration::Active->network.thread_count;
+        LOG_INFO << "प्रपञ्च — Prapancha starting on http://" << host << ":" << port;
+        app.addListener(host, port).setThreadNum(thread_count).run();
     }
 
 } // namespace mehara::prapancha
