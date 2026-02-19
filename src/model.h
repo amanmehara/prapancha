@@ -51,6 +51,55 @@ namespace mehara::prapancha {
         typename M::State;
     };
 
+    struct UserIdentity : BaseModel {
+        static constexpr std::string_view ModelName = "user_identity";
+
+        struct Attestation {
+            [[nodiscard]] const UUID &id() const { return _id; }
+
+        private:
+            friend struct UserIdentity;
+            const UUID _id;
+            explicit Attestation(const UUID &uuid) : _id(uuid) {}
+        };
+
+        struct State {
+            std::string email;
+            std::string password_hash;
+            bool is_admin;
+
+            bool operator==(const State &) const = default;
+        };
+
+        const State state;
+
+        static UserIdentity create(State s) { return UserIdentity(UUID::generate(), std::move(s)); }
+
+        [[nodiscard]] UserIdentity patch(State next_state) const {
+            if (this->state == next_state) {
+                return *this;
+            }
+            return UserIdentity(*this, std::move(next_state));
+        }
+
+        static UserIdentity rehydrate(const UUID id, const uint64_t v, const Timestamp ts, State s) {
+            return UserIdentity(id, v, ts, std::move(s));
+        }
+
+        [[nodiscard]] Attestation certify() const {
+            return Attestation{this->id};
+        }
+
+    private:
+        explicit UserIdentity(const UUID id, State s) : BaseModel(id), state(std::move(s)) {}
+
+        explicit UserIdentity(const UserIdentity &other, State s) :
+            BaseModel(other, increment_version), state(std::move(s)) {}
+
+        explicit UserIdentity(const UUID id, const uint64_t v, const Timestamp ts, State s) :
+            BaseModel(id, v, ts), state(std::move(s)) {}
+    };
+
     struct Author : BaseModel {
         static constexpr std::string_view ModelName = "author";
 
@@ -63,7 +112,9 @@ namespace mehara::prapancha {
 
         const State state;
 
-        static Author create(State s) { return Author(UUID::generate(), std::move(s)); }
+        static Author create(const UserIdentity::Attestation attestation, State s) {
+            return Author(attestation.id(), std::move(s));
+        }
 
         [[nodiscard]] Author patch(State next_state) const {
             if (this->state == next_state) {
@@ -122,6 +173,7 @@ namespace mehara::prapancha {
 
     static_assert(Model<Author>, "Author does not satisfy the Model concept.");
     static_assert(Model<Post>, "Post does not satisfy the Model concept.");
+    static_assert(Model<UserIdentity>, "UserIdentity does not satisfy the Model concept.");
 
 } // namespace mehara::prapancha
 
