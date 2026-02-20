@@ -4,6 +4,7 @@
 
 #include "uuid.h"
 
+#include <chrono>
 #include <random>
 
 namespace mehara::prapancha {
