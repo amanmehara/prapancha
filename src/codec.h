@@ -113,7 +113,7 @@ namespace mehara::prapancha {
                                          Timestamp{std::chrono::milliseconds{j["created_at"].asUInt64()}},
                                          std::move(state));
             }
-            return Author::create(std::move(state));
+            return std::nullopt;
         }
     };
 
