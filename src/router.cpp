@@ -7,7 +7,7 @@
 #include <filesystem>
 
 #include "codec.h"
-#include "controller.h"
+#include "controller/controller.h"
 #include "model.h"
 #include "persistence.h"
 

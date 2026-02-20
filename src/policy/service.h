@@ -26,6 +26,10 @@ namespace mehara::prapancha::policy {
         }
     } // namespace internal
 
+    inline Result<Context<WithRequest>> initialize(const drogon::HttpRequestPtr &req) {
+        return Context<WithRequest>(WithRequest{req});
+    }
+
     template<HasRequest T>
     Result<Refined<T, WithIdentity>> authenticate(T &&ctx) {
         auto res = internal::authenticate(ctx.request);

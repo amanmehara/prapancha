@@ -14,6 +14,11 @@ namespace mehara::prapancha::policy {
     struct PolicyFor;
 
     template<>
+    struct PolicyFor<WithRequest> {
+        static auto execute(const drogon::HttpRequestPtr &req) { return initialize(req); }
+    };
+
+    template<>
     struct PolicyFor<WithIdentity> {
         static auto execute(auto &&ctx) { return authenticate(std::forward<decltype(ctx)>(ctx)); }
     };
