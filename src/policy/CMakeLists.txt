@@ -1,0 +1,8 @@
+set(POLICY_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/context.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/mapping.h
+        ${CMAKE_CURRENT_SOURCE_DIR}/service.cpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/service.h
+)
+
+set(POLICY_SOURCES ${POLICY_SOURCES} PARENT_SCOPE)

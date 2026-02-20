@@ -1,9 +1,10 @@
+add_subdirectory(controller)
+add_subdirectory(policy)
+
 add_executable(${PROJECT_NAME}
         codec.h
         configuration.h
         configuration.cpp
-        controller.cpp
-        controller.h
         main.cpp
         model.h
         persistence.h
@@ -13,6 +14,8 @@ add_executable(${PROJECT_NAME}
         router.h
         uuid.cpp
         uuid.h
+        ${CONTROLLER_SOURCES}
+        ${POLICY_SOURCES}
 )
 
 target_link_libraries(${PROJECT_NAME} PRIVATE

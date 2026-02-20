@@ -2,15 +2,15 @@
 // Created by Aman Mehara on 18/02/26.
 //
 
-#ifndef PRAPANCHA_CONTEXT_H
-#define PRAPANCHA_CONTEXT_H
-
-#include "drogon/HttpRequest.h"
-#include "drogon/HttpResponse.h"
+#ifndef PRAPANCHA_POLICY_CONTEXT_H
+#define PRAPANCHA_POLICY_CONTEXT_H
 
 #include <concepts>
 #include <expected>
 #include <string>
+
+#include <drogon/HttpRequest.h>
+#include <drogon/HttpResponse.h>
 
 namespace mehara::prapancha::policy {
 
@@ -26,6 +26,10 @@ namespace mehara::prapancha::policy {
     struct WithValidation {
         const bool isSanitized = true;
     };
+
+    struct WithAdminAttestation {};
+
+    struct WithStaffAttestation {};
 
     template<typename... NewTraits>
     struct Context : NewTraits... {
@@ -52,6 +56,9 @@ namespace mehara::prapancha::policy {
     using Result = std::expected<T, drogon::HttpResponsePtr>;
 
     template<typename T>
+    concept IsAuthorizationAttestation = std::same_as<T, WithAdminAttestation> || std::same_as<T, WithStaffAttestation>;
+
+    template<typename T>
     concept HasRequest = requires(T v) {
         { v.request } -> std::convertible_to<drogon::HttpRequestPtr>;
     };
@@ -64,6 +71,12 @@ namespace mehara::prapancha::policy {
         { v.role } -> std::convertible_to<std::string>;
     };
 
+    template<typename T>
+    concept IsAdmin = std::derived_from<T, WithAdminAttestation>;
+
+    template<typename T>
+    concept IsStaff = std::derived_from<T, WithStaffAttestation>;
+
 } // namespace mehara::prapancha::policy
 
-#endif // PRAPANCHA_CONTEXT_H
+#endif // PRAPANCHA_POLICY_CONTEXT_H

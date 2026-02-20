@@ -9,11 +9,21 @@
 
 #include <expected>
 
+#include "drogon/HttpRequest.h"
+#include "drogon/HttpResponse.h"
+
 namespace mehara::prapancha::policy {
 
     namespace internal {
         Result<WithIdentity> authenticate(const drogon::HttpRequestPtr &req);
-        Result<void> authorize(const std::string &userRole, std::string_view requiredRole);
+
+        template<IsAuthorizationAttestation Attestation>
+        Result<Attestation> authorize(const std::string &userRole, std::string_view requiredRole) {
+            if (userRole == requiredRole) {
+                return Attestation{};
+            }
+            return std::unexpected(drogon::HttpResponse::newHttpResponse(drogon::k403Forbidden, drogon::CT_TEXT_PLAIN));
+        }
     } // namespace internal
 
     template<HasRequest T>
@@ -24,12 +34,12 @@ namespace mehara::prapancha::policy {
         return Refined<T, WithIdentity>(std::forward<T>(ctx), std::move(res.value()));
     }
 
-    template<HasRole T>
-    Result<T> authorize(T &&ctx, std::string_view requiredRole) {
-        auto res = internal::authorize(ctx.role, requiredRole);
+    template<IsAuthorizationAttestation Attestation, HasRole T>
+    Result<Refined<T, Attestation>> authorize(T &&ctx, std::string_view requiredRole) {
+        auto res = internal::authorize<Attestation>(ctx.role, requiredRole);
         if (!res)
             return std::unexpected(res.error());
-        return std::forward<T>(ctx);
+        return std::forward<T>(ctx, std::move(res.value()));
     }
 
     template<typename T>
