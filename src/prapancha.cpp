@@ -19,7 +19,10 @@ namespace mehara::prapancha {
         const auto &port = configuration::Active->network.port;
         const auto &thread_count = configuration::Active->network.thread_count;
         LOG_INFO << "प्रपञ्च — Prapancha starting on http://" << host << ":" << port;
-        app.addListener(host, port).setThreadNum(thread_count).run();
+        app.enableSession(1200, drogon::Cookie::SameSite::kLax)
+                .addListener(host, port)
+                .setThreadNum(thread_count)
+                .run();
     }
 
 } // namespace mehara::prapancha

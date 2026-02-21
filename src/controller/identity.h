@@ -83,6 +83,8 @@ namespace mehara::prapancha {
             auto user = find_user_by_username(_persistence, username);
 
             if (user && security::Hasher::verify(password, user->state.password_binding)) {
+                auto session = context.request->session();
+                session->insert("identity", policy::WithIdentity{user->id, user->state.username, "member"});
                 const auto response = drogon::HttpResponse::newHttpResponse(drogon::k200OK, drogon::CT_TEXT_PLAIN);
                 response->setBody("LOGGED IN!");
                 callback(response);
@@ -106,13 +108,13 @@ namespace mehara::prapancha {
         using RequiredTraits = std::tuple<policy::WithRequest, policy::WithIdentity>;
 
         void handle(const auto &context, drogon::AdviceCallback &&callback) {
+            auto session = context.request->session();
+            session->clear();
             const auto response = drogon::HttpResponse::newHttpResponse(drogon::k200OK, drogon::CT_TEXT_PLAIN);
             response->setBody("LOGGED OUT!");
             callback(response);
         }
     };
-
-    // --- DEREGISTRATION ---
 
     template<Persistence<UserIdentity> P, template<typename> typename C>
     class DeregistrationController : public BaseController<DeregistrationController<P, C>> {

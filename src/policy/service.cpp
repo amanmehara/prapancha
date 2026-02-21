@@ -14,9 +14,8 @@
 namespace mehara::prapancha::policy::internal {
 
     Result<WithIdentity> authenticate(const drogon::HttpRequestPtr &req) {
-        auto session = req->session();
-        if (session && session->find("user_id")) {
-            return WithIdentity{session->get<std::string>("user_id"), session->get<std::string>("role")};
+        if (const auto session = req->session(); session && session->find("identity")) {
+            return session->get<WithIdentity>("identity");
         }
         return std::unexpected(drogon::HttpResponse::newHttpResponse(drogon::k401Unauthorized, drogon::CT_TEXT_PLAIN));
     }

@@ -12,6 +12,8 @@
 #include <drogon/HttpRequest.h>
 #include <drogon/HttpResponse.h>
 
+#include "../uuid.h"
+
 namespace mehara::prapancha::policy {
 
     struct WithRequest {
@@ -19,7 +21,8 @@ namespace mehara::prapancha::policy {
     };
 
     struct WithIdentity {
-        const std::string userId;
+        const UUID id;
+        const std::string username;
         const std::string role;
     };
 
@@ -64,7 +67,8 @@ namespace mehara::prapancha::policy {
     };
     template<typename T>
     concept HasIdentity = requires(T v) {
-        { v.userId } -> std::convertible_to<std::string>;
+        { v.id } -> std::convertible_to<UUID>;
+        { v.username } -> std::convertible_to<std::string>;
     };
     template<typename T>
     concept HasRole = requires(T v) {

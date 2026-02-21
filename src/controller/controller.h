@@ -78,7 +78,7 @@ namespace mehara::prapancha {
     public:
         explicit ModelController(P persistence) : _persistence(std::move(persistence)) {}
 
-        using RequiredTraits = std::tuple<policy::WithRequest>;
+        using RequiredTraits = std::tuple<policy::WithRequest, policy::WithIdentity>;
 
         void handle(const auto &context, drogon::AdviceCallback &&callback)
             requires policy::HasRequest<decltype(context)> {
