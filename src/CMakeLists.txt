@@ -1,5 +1,6 @@
 add_subdirectory(controller)
 add_subdirectory(policy)
+add_subdirectory(security)
 
 add_executable(${PROJECT_NAME}
         codec.h
@@ -16,6 +17,7 @@ add_executable(${PROJECT_NAME}
         uuid.h
         ${CONTROLLER_SOURCES}
         ${POLICY_SOURCES}
+        ${SECURITY_SOURCES}
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
