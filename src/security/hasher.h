@@ -22,9 +22,9 @@ namespace mehara::prapancha::security {
         std::vector<uint8_t> hash;
     };
 
-    class hasher {
+    class Hasher {
     public:
-        hasher() = delete;
+        Hasher() = delete;
 
         static std::expected<PasswordBinding, Error> generate(std::string_view password);
 

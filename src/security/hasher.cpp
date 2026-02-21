@@ -33,7 +33,7 @@ namespace mehara::prapancha::security {
         }
     } // namespace
 
-    std::expected<PasswordBinding, Error> hasher::generate(std::string_view password) {
+    std::expected<PasswordBinding, Error> Hasher::generate(std::string_view password) {
         EVP_KDF *kdf = EVP_KDF_fetch(nullptr, algorithm.data(), nullptr);
         if (!kdf) {
             return std::unexpected(Error::LibraryFailure);
@@ -56,7 +56,7 @@ namespace mehara::prapancha::security {
         return PasswordBinding{version, m, t, p, std::move(salt), std::move(hash)};
     }
 
-    bool hasher::verify(std::string_view password, const PasswordBinding &binding) {
+    bool Hasher::verify(std::string_view password, const PasswordBinding &binding) {
         EVP_KDF *kdf = EVP_KDF_fetch(nullptr, algorithm.data(), nullptr);
         if (!kdf) {
             return false;
