@@ -20,6 +20,8 @@ namespace mehara::prapancha::security {
         uint32_t p;
         std::vector<uint8_t> salt;
         std::vector<uint8_t> hash;
+
+        bool operator==(const PasswordBinding &) const = default;
     };
 
     class Hasher {
