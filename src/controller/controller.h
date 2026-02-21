@@ -30,8 +30,8 @@ namespace mehara::prapancha {
     public:
         void dispatch(const drogon::HttpRequestPtr &request, drogon::AdviceCallback &&callback) {
             static_assert(Controller<T>, "Controller concept not satisfied.");
-            LOG_INFO << "Dispatching request to " << T::ControllerName << " handle."
-                     << "Request => Path: " << request->path() << ", Body: " << request->body();
+            LOG_INFO << "Dispatch [" << T::ControllerName << "] " << request->getMethodString() << " "
+                     << request->path() << " (" << request->bodyLength() << " bytes)";
             using namespace policy;
             using Traits = T::RequiredTraits;
 
