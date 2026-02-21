@@ -18,7 +18,14 @@ add_executable(${PROJECT_NAME}
         ${POLICY_SOURCES}
 )
 
+target_include_directories(${PROJECT_NAME} PRIVATE
+        ${OPENSSL_INSTALL_DIR}/include
+)
+
 target_link_libraries(${PROJECT_NAME} PRIVATE
+        prapancha::crypto
         prapancha::json
         prapancha::web
 )
+
+add_dependencies(${PROJECT_NAME} openssl_external)
