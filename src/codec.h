@@ -15,6 +15,7 @@
 
 #include "codec.h"
 #include "model.h"
+#include "security/hasher.h"
 #include "uuid.h"
 
 namespace mehara::prapancha {
@@ -77,6 +78,103 @@ namespace mehara::prapancha {
                 }
             }
             return result;
+        }
+    };
+
+    template<>
+    struct JsonCodec<security::PasswordBinding> {
+        using EncodedType = std::string;
+
+        static EncodedType encode(const security::PasswordBinding &pb) {
+            Json::Value j;
+            j["v"] = pb.version;
+            j["m"] = pb.m;
+            j["t"] = pb.t;
+            j["p"] = pb.p;
+            auto to_hex = [](const std::vector<uint8_t> &bytes) {
+                std::string res;
+                static constexpr char hex_chars[] = "0123456789abcdef";
+                for (const uint8_t b: bytes) {
+                    res.push_back(hex_chars[b >> 4]);
+                    res.push_back(hex_chars[b & 0x0F]);
+                }
+                return res;
+            };
+            j["salt"] = to_hex(pb.salt);
+            j["hash"] = to_hex(pb.hash);
+            Json::StreamWriterBuilder builder;
+            builder["indentation"] = "";
+            return Json::writeString(builder, j);
+        }
+
+        static std::optional<security::PasswordBinding> decode(const EncodedType &data) {
+            Json::Value j;
+            Json::CharReaderBuilder readerBuilder;
+            if (auto const reader = std::unique_ptr<Json::CharReader>(readerBuilder.newCharReader());
+                !reader->parse(data.data(), data.data() + data.size(), &j, nullptr)) {
+                return std::nullopt;
+            }
+            auto from_hex = [](const std::string &hex) {
+                std::vector<uint8_t> bytes;
+                for (size_t i = 0; i < hex.length(); i += 2) {
+                    bytes.push_back(static_cast<uint8_t>(std::stoul(hex.substr(i, 2), nullptr, 16)));
+                }
+                return bytes;
+            };
+            return security::PasswordBinding{j["v"].asUInt(),
+                                             j["m"].asUInt(),
+                                             j["t"].asUInt(),
+                                             j["p"].asUInt(),
+                                             from_hex(j["salt"].asString()),
+                                             from_hex(j["hash"].asString())};
+        }
+    };
+
+    template<>
+    struct JsonCodec<UserIdentity> {
+        using EncodedType = std::string;
+
+        static EncodedType encode(const UserIdentity &model) {
+            Json::Value j;
+            j["id"] = model.id.to_hex();
+            j["version"] = model.version;
+            j["created_at"] = static_cast<Json::UInt64>(
+                    std::chrono::duration_cast<std::chrono::milliseconds>(model.created_at.time_since_epoch()).count());
+            j["username"] = model.state.username;
+            j["is_admin"] = model.state.is_admin;
+            std::string pb_raw = JsonCodec<security::PasswordBinding>::encode(model.state.password_binding);
+            Json::Value pb_json;
+            Json::CharReaderBuilder readerBuilder;
+            if (auto const reader = std::unique_ptr<Json::CharReader>(readerBuilder.newCharReader());
+                reader->parse(pb_raw.data(), pb_raw.data() + pb_raw.size(), &pb_json, nullptr)) {
+                j["password_binding"] = pb_json;
+            }
+            Json::StreamWriterBuilder builder;
+            builder["indentation"] = "";
+            return Json::writeString(builder, j);
+        }
+
+        static std::optional<UserIdentity> decode(const EncodedType &data) {
+            Json::Value j;
+            Json::CharReaderBuilder readerBuilder;
+            if (auto const reader = std::unique_ptr<Json::CharReader>(readerBuilder.newCharReader());
+                !reader->parse(data.data(), data.data() + data.size(), &j, nullptr)) {
+                return std::nullopt;
+            }
+            Json::StreamWriterBuilder writerBuilder;
+            writerBuilder["indentation"] = "";
+            std::string pb_raw = Json::writeString(writerBuilder, j["password_binding"]);
+            auto pb_opt = JsonCodec<security::PasswordBinding>::decode(pb_raw);
+            if (!pb_opt || !j.isMember("username")) {
+                return std::nullopt;
+            }
+            UserIdentity::State state{j["username"].asString(), std::move(*pb_opt), j["is_admin"].asBool()};
+            if (j.isMember("id") && j.isMember("version") && j.isMember("created_at")) {
+                return UserIdentity::rehydrate(UUID::from_hex(j["id"].asString()).value(), j["version"].asUInt64(),
+                                               Timestamp{std::chrono::milliseconds{j["created_at"].asUInt64()}},
+                                               std::move(state));
+            }
+            return UserIdentity::create(std::move(state));
         }
     };
 
