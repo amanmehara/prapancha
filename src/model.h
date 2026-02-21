@@ -12,6 +12,7 @@
 #include <string_view>
 #include <utility>
 
+#include "security/hasher.h"
 #include "uuid.h"
 
 namespace mehara::prapancha {
@@ -64,8 +65,8 @@ namespace mehara::prapancha {
         };
 
         struct State {
-            std::string email;
-            std::string password_hash;
+            std::string username;
+            security::PasswordBinding password_binding;
             bool is_admin;
 
             bool operator==(const State &) const = default;
