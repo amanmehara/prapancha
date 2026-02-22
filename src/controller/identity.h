@@ -127,7 +127,7 @@ namespace mehara::prapancha {
         using RequiredTraits = std::tuple<policy::WithRequest, policy::WithIdentity>;
 
         void handle(const auto &context, drogon::AdviceCallback &&callback) {
-            if (_persistence.remove(context.identity.id)) {
+            if (_persistence.remove(context.id)) {
                 const auto response = drogon::HttpResponse::newHttpResponse(drogon::k200OK, drogon::CT_TEXT_PLAIN);
                 response->setBody("ACCOUNT DELETED.");
                 callback(response);
