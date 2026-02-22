@@ -16,6 +16,7 @@ add_executable(${PROJECT_NAME}
         uuid.cpp
         uuid.h
         ${CONTROLLER_SOURCES}
+        ${LOGGING_SOURCES}
         ${POLICY_SOURCES}
         ${SECURITY_SOURCES}
 )
