@@ -12,6 +12,7 @@
 #include <drogon/drogon.h>
 
 #include "../codec.h"
+#include "../logging/registry.h"
 #include "../persistence.h"
 #include "../policy/mapping.h"
 #include "../policy/service.h"
@@ -30,8 +31,10 @@ namespace mehara::prapancha {
     public:
         void dispatch(const drogon::HttpRequestPtr &request, drogon::AdviceCallback &&callback) {
             static_assert(Controller<T>, "Controller concept not satisfied.");
-            LOG_INFO << "Dispatch [" << T::ControllerName << "] " << request->getMethodString() << " "
-                     << request->path() << " (" << request->bodyLength() << " bytes)";
+            logging::Loggers::Main().log_info([&] {
+                return std::format("Dispatch [{}] {} {} ({} bytes).", T::ControllerName, request->getMethodString(),
+                                   request->getPath(), request->bodyLength());
+            });
             using namespace policy;
             using Traits = T::RequiredTraits;
 

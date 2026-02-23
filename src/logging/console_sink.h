@@ -13,12 +13,10 @@
 #include "log_sink.h"
 
 namespace mehara::prapancha::logging {
-    class FileSink : public LogSink<FileSink> {
+    class ConsoleSink : public LogSink<ConsoleSink> {
     public:
-        void write(LogLevel level, std::string_view msg, const std::source_location &loc) const {
-            const auto source_file = trantor::Logger::SourceFile(loc.file_name());
-            const auto trantor_level = to_trantor_level(level);
-            trantor::Logger(source_file, static_cast<int>(loc.line()), trantor_level).stream() << msg;
+        void write(LogLevel level, std::string_view msg) const {
+            trantor::Logger(to_trantor_level(level)).stream() << msg.data();
         }
 
     private:

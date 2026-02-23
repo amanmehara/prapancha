@@ -17,19 +17,14 @@ namespace mehara::prapancha::logging {
     template<typename Derived>
     class LogSink {
     public:
-        void write(LogLevel level, std::string_view msg, const std::source_location &loc) {
-            static_cast<Derived *>(this)->write(level, msg, loc);
+        void write(LogLevel level, std::string_view msg) {
+            static_cast<Derived *>(this)->write(level, msg);
         }
-
-    protected:
-        LogSink() = default;
-        ~LogSink() = default;
     };
 
     template<typename T>
-    concept IsLogSink =
-            std::derived_from<T, LogSink<T>> && requires(const T &sink, LogLevel level, std::string_view msg,
-                                                         std::source_location loc) { sink.write(level, msg, loc); };
+    concept IsLogSink = std::derived_from<T, LogSink<T>> &&
+                        requires(const T &sink, LogLevel level, std::string_view msg) { sink.write(level, msg); };
 
     template<IsLogSink... Sinks>
     class LogSinks {
@@ -38,10 +33,8 @@ namespace mehara::prapancha::logging {
     public:
         explicit LogSinks(Sinks &&...args) : sinks(std::forward<Sinks>(args)...) {}
 
-        void dispatch(LogLevel level, std::string_view msg, const std::source_location& loc) {
-            std::apply([&](auto &...s) {
-                (s.write(level, msg, loc), ...);
-            }, sinks);
+        void dispatch(LogLevel level, std::string_view msg) {
+            std::apply([&](auto &...s) { (s.write(level, msg), ...); }, sinks);
         }
     };
 
