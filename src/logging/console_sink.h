@@ -15,7 +15,10 @@
 namespace mehara::prapancha::logging {
     class ConsoleSink : public LogSink<ConsoleSink> {
     public:
-        void write(LogLevel level, std::string_view msg) const { std::println(stdout, "{}", msg); }
+        void write(LogLevel level, std::string_view msg) const {
+            const auto &color = get_traits(level).color;
+            std::println(stdout, "{}{}{}", color, msg, LogLevelTraits::reset);
+        }
     };
 } // namespace mehara::prapancha::logging
 
