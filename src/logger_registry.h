@@ -20,7 +20,7 @@ namespace mehara::prapancha {
         static logging::Logger<logging::LogSinks<logging::ConsoleSink, logging::AsyncSink<logging::FileSink>>> &Main() {
             using namespace mehara::prapancha::logging;
             static constexpr std::string_view category = "App";
-            static constexpr configuration::Configuration::Logging default_logging{};
+            static constexpr Configuration::Logging default_logging{};
             static const auto path = std::filesystem::absolute(default_logging.root_path) / category / "log";
             static LogSinks<ConsoleSink, AsyncSink<FileSink>> sinks(
                     std::make_unique<ConsoleSink>(default_logging.console_enabled),

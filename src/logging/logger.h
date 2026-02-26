@@ -19,7 +19,7 @@
 #define HAS_STACKTRACE 0
 #endif
 
-#include "../configuration.h"
+#include "configuration.h"
 #include "log_level.h"
 #include "log_sink.h"
 
@@ -28,8 +28,7 @@ namespace mehara::prapancha::logging {
     template<IsLogSinks Sinks>
     class Logger {
     public:
-        Logger(const LogLevel lvl, std::string cat, Sinks &s,
-               const configuration::Configuration::Forensic *forensics_cfg = nullptr) :
+        Logger(const LogLevel lvl, std::string cat, Sinks &s, const Configuration::Forensic *forensics_cfg = nullptr) :
             min_level(lvl), category(std::move(cat)), sinks(s), forensics_cfg_(forensics_cfg) {}
 
         template<typename... Args>
@@ -110,7 +109,7 @@ namespace mehara::prapancha::logging {
         LogLevel min_level;
         std::string category;
         Sinks &sinks;
-        const configuration::Configuration::Forensic *forensics_cfg_;
+        const Configuration::Forensic *forensics_cfg_;
         bool backtrace_enabled = true;
 
         struct ThreadContext {
