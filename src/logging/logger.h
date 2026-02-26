@@ -10,7 +10,16 @@
 #include <format>
 #include <functional>
 #include <string>
+#include <version>
 
+#if defined(__cpp_lib_stacktrace) && __cpp_lib_stacktrace >= 202011L
+#include <stacktrace>
+#define HAS_STACKTRACE 1
+#else
+#define HAS_STACKTRACE 0
+#endif
+
+#include "../configuration.h"
 #include "log_level.h"
 #include "log_sink.h"
 
@@ -19,7 +28,9 @@ namespace mehara::prapancha::logging {
     template<IsLogSinks Sinks>
     class Logger {
     public:
-        Logger(const LogLevel lvl, std::string cat, Sinks &s) : min_level(lvl), category(std::move(cat)), sinks(s) {}
+        Logger(const LogLevel lvl, std::string cat, Sinks &s,
+               const configuration::Configuration::Forensic *forensics_cfg = nullptr) :
+            min_level(lvl), category(std::move(cat)), sinks(s), forensics_cfg_(forensics_cfg) {}
 
         template<typename... Args>
             requires(std::formattable<Args, char> && ...)
@@ -99,18 +110,23 @@ namespace mehara::prapancha::logging {
         LogLevel min_level;
         std::string category;
         Sinks &sinks;
+        const configuration::Configuration::Forensic *forensics_cfg_;
         bool backtrace_enabled = true;
 
         struct ThreadContext {
             std::string log_buffer;
             std::deque<std::string> history;
-            static constexpr size_t max_history = 50;
         };
 
         static inline thread_local ThreadContext ctx;
 
+        [[nodiscard]] bool is_breadcrumb_active() const noexcept {
+            return forensics_cfg_ && forensics_cfg_->breadcrumbs.enabled &&
+                   forensics_cfg_->breadcrumbs.per_thread_limit > 0;
+        }
+
         [[nodiscard]] bool should_log(const LogLevel level) const noexcept {
-            return (min_level != LogLevel::Off) && (level >= min_level || backtrace_enabled);
+            return (min_level != LogLevel::Off) && (level >= min_level || is_breadcrumb_active());
         }
 
         template<typename... Args>
@@ -129,26 +145,42 @@ namespace mehara::prapancha::logging {
 
         void dispatch(LogLevel level, std::string_view msg) {
             if (level >= min_level) {
-                if (level >= LogLevel::Error) {
-                    flush();
+                if (level >= LogLevel::Error && forensics_cfg_) {
+                    flush_forensics(level);
                 }
                 sinks.dispatch(level, msg);
-            } else if (backtrace_enabled) {
+            } else if (is_breadcrumb_active()) {
                 ctx.history.emplace_back(msg);
-                if (ctx.history.size() > ThreadContext::max_history)
+                if (ctx.history.size() > forensics_cfg_->breadcrumbs.per_thread_limit)
                     ctx.history.pop_front();
             }
         }
 
-        void flush() {
-            if (ctx.history.empty())
-                return;
-            sinks.dispatch(LogLevel::Info, ">>> [HISTORY START] <<<");
-            for (const auto &line: ctx.history) {
-                sinks.dispatch(LogLevel::Trace, line);
+        void flush_forensics(LogLevel level) {
+            std::string report = "\n┌─────────────────────── FORENSICS ───────────────────────\n";
+            if (forensics_cfg_->breadcrumbs.enabled && !ctx.history.empty()) {
+                report += "│ Recent Context (Breadcrumbs):\n";
+                for (const auto &line: ctx.history) {
+                    report += std::format("│   • {}\n", line);
+                }
+                ctx.history.clear();
             }
-            sinks.dispatch(LogLevel::Info, ">>> [HISTORY END] <<<");
-            ctx.history.clear();
+            if (forensics_cfg_->stacktrace.enabled) {
+                if (forensics_cfg_->breadcrumbs.enabled) {
+                    report += "│\n";
+                }
+#if HAS_STACKTRACE
+                auto st = std::stacktrace::current(forensics_cfg_->stacktrace.skip, forensics_cfg_->stacktrace.depth);
+                if (!st.empty()) {
+                    report += "│ Call Stack:\n";
+                    report += "│   " + std::to_string(st);
+                }
+#else
+                report += "│ Stacktrace: Forensic capture unavailable\n";
+#endif
+            }
+            report += "└─────────────────────────────────────────────────────────\n";
+            sinks.dispatch(level, report);
         }
     };
 
