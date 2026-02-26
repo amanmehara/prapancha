@@ -6,6 +6,7 @@ add_executable(${PROJECT_NAME}
         codec.h
         configuration.h
         configuration.cpp
+        logger_registry.h
         main.cpp
         model.h
         persistence.h
