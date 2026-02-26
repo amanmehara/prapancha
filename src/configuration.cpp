@@ -56,7 +56,7 @@ namespace mehara::prapancha::configuration {
                     std::cerr << "Warning: Invalid thread_count '" << val
                               << "'. Using default: " << Configuration::Network::AutoDetectThreads << "\n";
                 }
-            } else if (current_arg == "--root_path" && (i + 1) < args.size()) {
+            } else if (current_arg == "--data_path" && (i + 1) < args.size()) {
                 config.persistence.root_path = std::string(args[++i]);
             } else if (current_arg == "--help") {
                 std::cout << "Prapancha Framework\n"
@@ -66,7 +66,7 @@ namespace mehara::prapancha::configuration {
                           << "  --development        Execute in a development environment\n"
                           << "  --port <number>      Set the network listener port\n"
                           << "  --thread_count <n>   Set number of worker threads (0 for auto)\n"
-                          << "  --root_path <path>   Set the persistence storage root path\n"
+                          << "  --data_path <path>   Set the persistence storage root path\n"
                           << "  --help               Show help information\n";
                 std::exit(0);
             }
