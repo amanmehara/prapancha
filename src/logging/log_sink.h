@@ -6,7 +6,7 @@
 #define PRAPANCHA_LOGGING_LOG_SINK_H
 
 #include <concepts>
-#include <source_location>
+#include <memory>
 #include <string_view>
 #include <tuple>
 
@@ -17,8 +17,8 @@ namespace mehara::prapancha::logging {
     template<typename Derived>
     class LogSink {
     public:
-        void write(LogLevel level, std::string_view msg) {
-            static_cast<Derived *>(this)->write(level, msg);
+        void write(LogLevel level, std::string_view msg) const noexcept {
+            static_cast<const Derived *>(this)->write(level, msg);
         }
     };
 
@@ -28,13 +28,13 @@ namespace mehara::prapancha::logging {
 
     template<IsLogSink... Sinks>
     class LogSinks {
-        std::tuple<Sinks...> sinks;
+        std::tuple<std::unique_ptr<Sinks>...> sinks;
 
     public:
-        explicit LogSinks(Sinks &&...args) : sinks(std::forward<Sinks>(args)...) {}
+        explicit LogSinks(std::unique_ptr<Sinks>... args) : sinks(std::move(args)...) {}
 
-        void dispatch(LogLevel level, std::string_view msg) {
-            std::apply([&](auto &...s) { (s.write(level, msg), ...); }, sinks);
+        void dispatch(LogLevel level, std::string_view msg) const {
+            std::apply([&](const auto &...s) { (s->write(level, msg), ...); }, sinks);
         }
     };
 
@@ -42,6 +42,9 @@ namespace mehara::prapancha::logging {
     concept IsLogSinks = requires {
         []<typename... Sinks>(const LogSinks<Sinks...> &) {}(std::declval<const std::remove_cvref_t<T> &>());
     };
+
+    template<typename... Sinks>
+    LogSinks(Sinks &&...) -> LogSinks<std::remove_cvref_t<Sinks>...>;
 
 } // namespace mehara::prapancha::logging
 
