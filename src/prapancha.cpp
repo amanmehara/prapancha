@@ -5,7 +5,7 @@
 #include "prapancha.h"
 
 #include "configuration.h"
-#include "logging/registry.h"
+#include "logger_registry.h"
 #include "router.h"
 
 #include <drogon/drogon.h>
@@ -19,7 +19,7 @@ namespace mehara::prapancha {
         const auto &host = configuration::Active->network.host;
         const auto &port = configuration::Active->network.port;
         const auto &thread_count = configuration::Active->network.thread_count;
-        logging::Loggers::Main().log_info("प्रपञ्च — Prapancha starting on http://{}:{}", host, port);
+        Loggers::app.log_info("प्रपञ्च — Prapancha starting on http://{}:{}", host, port);
         app.enableSession(1200, drogon::Cookie::SameSite::kLax)
                 .addListener(host, port)
                 .setThreadNum(thread_count)
