@@ -16,8 +16,7 @@
 namespace mehara::prapancha {
 
     struct Loggers {
-    private:
-        static logging::Logger<logging::LogSinks<logging::ConsoleSink, logging::AsyncSink<logging::FileSink>>> &Main() {
+        static auto &App() {
             using namespace mehara::prapancha::logging;
             static constexpr std::string_view category = "App";
             static constexpr Configuration::Logging default_logging{};
@@ -29,9 +28,6 @@ namespace mehara::prapancha {
             static Logger instance(LogLevel::Info, std::string(category), sinks);
             return instance;
         }
-
-    public:
-        static inline auto &app = Main();
     };
 
 } // namespace mehara::prapancha

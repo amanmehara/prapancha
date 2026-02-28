@@ -31,7 +31,7 @@ namespace mehara::prapancha {
     public:
         void dispatch(const drogon::HttpRequestPtr &request, drogon::AdviceCallback &&callback) {
             static_assert(Controller<T>, "Controller concept not satisfied.");
-            Loggers::app.log_info([&] {
+            Loggers::App().log_info([&] {
                 return std::format("Dispatch [{}] {} {} ({} bytes).", T::ControllerName, request->getMethodString(),
                                    request->getPath(), request->bodyLength());
             });
