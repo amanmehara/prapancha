@@ -5,8 +5,8 @@
 #ifndef PRAPANCHA_LOGGER_REGISTRY_H
 #define PRAPANCHA_LOGGER_REGISTRY_H
 
-#include "configuration.h"
 #include "logging/async_sink.h"
+#include "logging/configuration.h"
 #include "logging/console_sink.h"
 #include "logging/file_sink.h"
 #include "logging/log_level.h"
