@@ -1,4 +1,5 @@
 add_subdirectory(controller)
+add_subdirectory(logging)
 add_subdirectory(policy)
 add_subdirectory(security)
 
