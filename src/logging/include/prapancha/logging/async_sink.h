@@ -12,8 +12,8 @@
 #include <string>
 #include <thread>
 
-#include "log_level.h"
-#include "log_sink.h"
+#include <prapancha/logging/log_level.h>
+#include <prapancha/logging/log_sink.h>
 
 namespace mehara::prapancha::logging {
 

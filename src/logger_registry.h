@@ -5,13 +5,13 @@
 #ifndef PRAPANCHA_LOGGER_REGISTRY_H
 #define PRAPANCHA_LOGGER_REGISTRY_H
 
-#include "logging/async_sink.h"
-#include "logging/configuration.h"
-#include "logging/console_sink.h"
-#include "logging/file_sink.h"
-#include "logging/log_level.h"
-#include "logging/log_sink.h"
-#include "logging/logger.h"
+#include <prapancha/logging/async_sink.h>
+#include <prapancha/logging/configuration.h>
+#include <prapancha/logging/console_sink.h>
+#include <prapancha/logging/file_sink.h>
+#include <prapancha/logging/log_level.h>
+#include <prapancha/logging/log_sink.h>
+#include <prapancha/logging/logger.h>
 
 namespace mehara::prapancha {
 

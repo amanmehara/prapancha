@@ -10,7 +10,7 @@
 #include <string_view>
 #include <tuple>
 
-#include "log_level.h"
+#include <prapancha/logging/log_level.h>
 
 namespace mehara::prapancha::logging {
 

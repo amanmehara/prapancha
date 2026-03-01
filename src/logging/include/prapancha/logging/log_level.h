@@ -5,6 +5,8 @@
 #ifndef PRAPANCHA_LOGGING_LOG_LEVEL_H
 #define PRAPANCHA_LOGGING_LOG_LEVEL_H
 
+#include <string_view>
+
 namespace mehara::prapancha::logging {
 
     enum class LogLevel { Off = 0, Trace, Debug, Info, Warn, Error, Critical };

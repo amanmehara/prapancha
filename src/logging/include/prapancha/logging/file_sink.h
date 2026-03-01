@@ -9,8 +9,9 @@
 #include <filesystem>
 #include <print>
 #include <string_view>
-#include "log_level.h"
-#include "log_sink.h"
+
+#include <prapancha/logging/log_level.h>
+#include <prapancha/logging/log_sink.h>
 
 namespace mehara::prapancha::logging {
 
