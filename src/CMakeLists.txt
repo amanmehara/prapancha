@@ -19,7 +19,6 @@ add_executable(${PROJECT_NAME}
         uuid.h
         ${CONTROLLER_SOURCES}
         ${POLICY_SOURCES}
-        ${SECURITY_SOURCES}
 )
 
 target_include_directories(${PROJECT_NAME} PRIVATE
@@ -34,6 +33,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         Boost::json
         Boost::system
         prapancha::logging
+        prapancha::security
 )
 
 add_dependencies(${PROJECT_NAME} openssl_external)

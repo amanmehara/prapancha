@@ -1,6 +1,13 @@
-set(SECURITY_SOURCES
-        ${CMAKE_CURRENT_SOURCE_DIR}/hasher.cpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/hasher.h
+add_library(prapancha_security STATIC
+        src/hasher.cpp
 )
 
-set(SECURITY_SOURCES ${SECURITY_SOURCES} PARENT_SCOPE)
+add_library(prapancha::security ALIAS prapancha_security)
+
+target_include_directories(prapancha_security PUBLIC
+        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+)
+
+target_link_libraries(prapancha_security PRIVATE prapancha::crypto)
+
+add_dependencies(prapancha_security openssl_external)

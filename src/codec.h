@@ -14,8 +14,8 @@
 
 #include <boost/json.hpp>
 
+#include <prapancha/security/hasher.h>
 #include "model.h"
-#include "security/hasher.h"
 #include "uuid.h"
 
 namespace mehara::prapancha {

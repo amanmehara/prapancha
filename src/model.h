@@ -12,7 +12,7 @@
 #include <string_view>
 #include <utility>
 
-#include "security/hasher.h"
+#include <prapancha/security/hasher.h>
 #include "uuid.h"
 
 namespace mehara::prapancha {
