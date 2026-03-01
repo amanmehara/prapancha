@@ -13,9 +13,9 @@ namespace mehara::prapancha::policy {
     template<typename Trait>
     struct PolicyFor;
 
-    template<>
-    struct PolicyFor<WithRequest> {
-        static auto execute(const drogon::HttpRequestPtr &req) { return initialize(req); }
+    template<typename Body>
+    struct PolicyFor<WithRequest<Body>> {
+        static auto execute(auto &&request) { return initialize(request); }
     };
 
     template<>

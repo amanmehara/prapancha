@@ -29,8 +29,11 @@ target_include_directories(${PROJECT_NAME} PRIVATE
 
 target_link_libraries(${PROJECT_NAME} PRIVATE
         prapancha::crypto
-        prapancha::json
-        prapancha::web
+        Boost::asio
+        Boost::beast
+        Boost::headers
+        Boost::json
+        Boost::system
 )
 
 add_dependencies(${PROJECT_NAME} openssl_external)

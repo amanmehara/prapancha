@@ -9,15 +9,15 @@
 #include <expected>
 #include <string>
 
-#include <drogon/HttpRequest.h>
-#include <drogon/HttpResponse.h>
+#include <boost/beast/http.hpp>
 
 #include "../uuid.h"
 
 namespace mehara::prapancha::policy {
 
+    template<typename Body>
     struct WithRequest {
-        drogon::HttpRequestPtr request;
+        boost::beast::http::request<Body> request;
     };
 
     struct WithIdentity {
@@ -56,15 +56,13 @@ namespace mehara::prapancha::policy {
     using Refined = Refiner<T, NewTrait>::type;
 
     template<typename T>
-    using Result = std::expected<T, drogon::HttpResponsePtr>;
+    using Result = std::expected<T, boost::beast::http::status>;
 
     template<typename T>
     concept IsAuthorizationAttestation = std::same_as<T, WithAdminAttestation> || std::same_as<T, WithStaffAttestation>;
 
     template<typename T>
-    concept HasRequest = requires(T v) {
-        { v.request } -> std::convertible_to<drogon::HttpRequestPtr>;
-    };
+    concept HasRequest = requires(T v) { []<typename Body>(boost::beast::http::request<Body> &) {}(v.request); };
     template<typename T>
     concept HasIdentity = requires(T v) {
         { v.id } -> std::convertible_to<UUID>;

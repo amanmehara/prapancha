@@ -9,25 +9,26 @@
 
 #include <expected>
 
-#include "drogon/HttpRequest.h"
-#include "drogon/HttpResponse.h"
+#include <boost/beast/http.hpp>
 
 namespace mehara::prapancha::policy {
 
     namespace internal {
-        Result<WithIdentity> authenticate(const drogon::HttpRequestPtr &req);
+        template<typename Body>
+        Result<WithIdentity> authenticate(const boost::beast::http::request<Body> &request);
 
         template<IsAuthorizationAttestation Attestation>
-        Result<Attestation> authorize(const std::string &userRole, std::string_view requiredRole) {
+        Result<Attestation> authorize(const std::string &userRole, const std::string_view requiredRole) {
             if (userRole == requiredRole) {
                 return Attestation{};
             }
-            return std::unexpected(drogon::HttpResponse::newHttpResponse(drogon::k403Forbidden, drogon::CT_TEXT_PLAIN));
+            return std::unexpected(boost::beast::http::status::forbidden);
         }
     } // namespace internal
 
-    inline Result<Context<WithRequest>> initialize(const drogon::HttpRequestPtr &req) {
-        return Context<WithRequest>(WithRequest{req});
+    template<typename Body>
+    Result<Context<WithRequest<Body>>> initialize(const boost::beast::http::request<Body> &request) {
+        return Context<WithRequest<Body>>(WithRequest<Body>{request});
     }
 
     template<HasRequest T>

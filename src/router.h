@@ -5,35 +5,40 @@
 #ifndef PRAPANCHA_ROUTER_H
 #define PRAPANCHA_ROUTER_H
 
+#include <functional>
+#include <map>
 #include <memory>
 
-#include "drogon/HttpAppFramework.h"
+#include "boost/beast/http.hpp"
 
 #include "configuration.h"
+#include "controller/controller.h"
 
 namespace mehara::prapancha {
 
-    /// @brief Orchestrates endpoint registration and handler mapping for the framework.
+    using Handler =
+            std::function<void(boost::beast::http::request<boost::beast::http::string_body> &&,
+                               std::function<void(boost::beast::http::response<boost::beast::http::string_body>)>)>;
+
     class Router {
     public:
-        /// @brief Constructs a Router and binds it to a specific application and configuration.
-        ///
-        /// Upon construction, the Router immediately registers all framework routes to the app.
-        /// @param app Reference to the Drogon application framework instance.
-        /// @param configuration Pointer to the manifested system configuration.
-        explicit Router(drogon::HttpAppFramework &app,
-                        const configuration::Configuration *configuration = configuration::Active);
+        explicit Router(boost::asio::io_context &ioc, const configuration::Configuration *configuration);
 
-    private:
-        /// @brief Wraps a controller member function into a Drogon-compatible handler.
-        template<typename T>
-        auto to_handler(const std::shared_ptr<T> &controller);
-
-        /// @brief Internal execution of route registration.
         void register_routes();
 
-        drogon::HttpAppFramework &app_; ///< Reference to the underlying HTTP framework.
-        const configuration::Configuration *configuration_; ///< Governing configuration for path resolution.
+        void dispatch(boost::beast::http::request<boost::beast::http::string_body> &&req,
+                      std::function<void(boost::beast::http::response<boost::beast::http::string_body>)> &&send);
+
+    private:
+        template<typename T>
+            requires std::is_base_of_v<BaseController<T>, T>
+        Handler to_handler(const std::shared_ptr<T> &controller);
+
+        std::string make_route_key(boost::beast::http::verb method, std::string_view target) const;
+
+        boost::asio::io_context &ioc_;
+        const configuration::Configuration *configuration_;
+        std::map<std::string, Handler> routes_;
     };
 
 } // namespace mehara::prapancha

@@ -5,15 +5,15 @@
 #ifndef PRAPANCHA_CODEC_H
 #define PRAPANCHA_CODEC_H
 
+#include <charconv>
 #include <chrono>
 #include <concepts>
 #include <optional>
 #include <string>
 #include <vector>
 
-#include <json/json.h>
+#include <boost/json.hpp>
 
-#include "codec.h"
 #include "model.h"
 #include "security/hasher.h"
 #include "uuid.h"
@@ -31,6 +31,43 @@ namespace mehara::prapancha {
     struct BinaryCodec {};
 
     template<typename T>
+    struct HexCodec;
+
+    template<>
+    struct HexCodec<std::vector<uint8_t>> {
+        using EncodedType = std::string;
+
+        static EncodedType encode(const std::vector<uint8_t> &bytes) {
+            static constexpr char hex_chars[] = "0123456789abcdef";
+            std::string res;
+            res.reserve(bytes.size() * 2);
+            for (const uint8_t b: bytes) {
+                res.push_back(hex_chars[b >> 4]);
+                res.push_back(hex_chars[b & 0x0F]);
+            }
+            return res;
+        }
+
+        static std::optional<std::vector<uint8_t>> decode(const EncodedType &data) {
+            if (data.length() % 2 != 0) {
+                return std::nullopt;
+            }
+            std::vector<std::uint8_t> bytes;
+            bytes.reserve(data.length() / 2);
+            for (std::size_t i = 0; i < data.length(); i += 2) {
+                std::uint8_t byte = 0;
+                if (auto [_, ec] = std::from_chars(data.data() + i, data.data() + i + 2, byte, 16); ec != std::errc{}) {
+                    return std::nullopt;
+                }
+                bytes.push_back(byte);
+            }
+            return bytes;
+        }
+    };
+
+    static_assert(Codec<HexCodec<std::vector<std::uint8_t>>, std::vector<std::uint8_t>>);
+
+    template<typename T>
     struct JsonCodec {
         using EncodedType = std::string;
 
@@ -43,41 +80,32 @@ namespace mehara::prapancha {
         using EncodedType = std::string;
 
         static EncodedType encode(const std::vector<T> &collection) {
-            Json::Value array_json(Json::arrayValue);
-            Json::CharReaderBuilder readerBuilder;
-            std::string errors;
+            boost::json::array arr;
+            arr.reserve(collection.size());
             for (const auto &item: collection) {
-                std::string raw = JsonCodec<T>::encode(item);
-                Json::Value element;
-                if (auto const reader = std::unique_ptr<Json::CharReader>(readerBuilder.newCharReader());
-                    reader->parse(raw.data(), raw.data() + raw.size(), &element, &errors)) {
-                    array_json.append(std::move(element));
-                }
+                arr.push_back(boost::json::parse(JsonCodec<T>::encode(item)));
             }
-            Json::StreamWriterBuilder writerBuilder;
-            writerBuilder["indentation"] = "";
-            return Json::writeString(writerBuilder, array_json);
+            return boost::json::serialize(arr);
         }
 
         static std::optional<std::vector<T>> decode(const EncodedType &data) {
-            Json::Value root;
-            const Json::CharReaderBuilder readerBuilder;
-            std::string errors;
-            if (auto const reader = std::unique_ptr<Json::CharReader>(readerBuilder.newCharReader());
-                !reader->parse(data.data(), data.data() + data.size(), &root, &errors) || !root.isArray()) {
+            try {
+                auto jv = boost::json::parse(data);
+                if (!jv.is_array()) {
+                    return std::nullopt;
+                }
+                std::vector<T> result;
+                result.reserve(jv.as_array().size());
+                for (const auto &element: jv.as_array()) {
+                    auto item = JsonCodec<T>::decode(boost::json::serialize(element));
+                    if (item) {
+                        result.push_back(std::move(*item));
+                    }
+                }
+                return result;
+            } catch (...) {
                 return std::nullopt;
             }
-            std::vector<T> result;
-            result.reserve(root.size());
-            Json::StreamWriterBuilder writerBuilder;
-            writerBuilder["indentation"] = "";
-            for (const auto &element: root) {
-                auto item = JsonCodec<T>::decode(Json::writeString(writerBuilder, element));
-                if (item) {
-                    result.push_back(std::move(*item));
-                }
-            }
-            return result;
         }
     };
 
@@ -86,47 +114,35 @@ namespace mehara::prapancha {
         using EncodedType = std::string;
 
         static EncodedType encode(const security::PasswordBinding &pb) {
-            Json::Value j;
-            j["v"] = pb.version;
-            j["m"] = pb.m;
-            j["t"] = pb.t;
-            j["p"] = pb.p;
-            auto to_hex = [](const std::vector<uint8_t> &bytes) {
-                std::string res;
-                static constexpr char hex_chars[] = "0123456789abcdef";
-                for (const uint8_t b: bytes) {
-                    res.push_back(hex_chars[b >> 4]);
-                    res.push_back(hex_chars[b & 0x0F]);
-                }
-                return res;
-            };
-            j["salt"] = to_hex(pb.salt);
-            j["hash"] = to_hex(pb.hash);
-            Json::StreamWriterBuilder builder;
-            builder["indentation"] = "";
-            return Json::writeString(builder, j);
+            boost::json::object obj;
+            obj["v"] = pb.version;
+            obj["m"] = pb.m;
+            obj["t"] = pb.t;
+            obj["p"] = pb.p;
+            obj["salt"] = HexCodec<std::vector<std::uint8_t>>::encode(pb.salt);
+            obj["hash"] = HexCodec<std::vector<std::uint8_t>>::encode(pb.hash);
+            return boost::json::serialize(obj);
         }
 
         static std::optional<security::PasswordBinding> decode(const EncodedType &data) {
-            Json::Value j;
-            Json::CharReaderBuilder readerBuilder;
-            if (auto const reader = std::unique_ptr<Json::CharReader>(readerBuilder.newCharReader());
-                !reader->parse(data.data(), data.data() + data.size(), &j, nullptr)) {
+            try {
+                auto obj = boost::json::parse(data).as_object();
+                auto salt = HexCodec<std::vector<std::uint8_t>>::decode(
+                        static_cast<std::string>(obj.at("salt").as_string()));
+                auto hash = HexCodec<std::vector<std::uint8_t>>::decode(
+                        static_cast<std::string>(obj.at("hash").as_string()));
+                if (!salt || !hash) {
+                    return std::nullopt;
+                }
+                return security::PasswordBinding{static_cast<std::uint32_t>(obj.at("v").as_int64()),
+                                                 static_cast<std::uint32_t>(obj.at("m").as_int64()),
+                                                 static_cast<std::uint32_t>(obj.at("t").as_int64()),
+                                                 static_cast<std::uint32_t>(obj.at("p").as_int64()),
+                                                 std::move(salt.value()),
+                                                 std::move(hash.value())};
+            } catch (...) {
                 return std::nullopt;
             }
-            auto from_hex = [](const std::string &hex) {
-                std::vector<uint8_t> bytes;
-                for (size_t i = 0; i < hex.length(); i += 2) {
-                    bytes.push_back(static_cast<uint8_t>(std::stoul(hex.substr(i, 2), nullptr, 16)));
-                }
-                return bytes;
-            };
-            return security::PasswordBinding{j["v"].asUInt(),
-                                             j["m"].asUInt(),
-                                             j["t"].asUInt(),
-                                             j["p"].asUInt(),
-                                             from_hex(j["salt"].asString()),
-                                             from_hex(j["hash"].asString())};
         }
     };
 
@@ -135,46 +151,38 @@ namespace mehara::prapancha {
         using EncodedType = std::string;
 
         static EncodedType encode(const UserIdentity &model) {
-            Json::Value j;
+            boost::json::object j;
             j["id"] = model.id.to_hex();
             j["version"] = model.version;
-            j["created_at"] = static_cast<Json::UInt64>(
+            j["created_at"] = static_cast<uint64_t>(
                     std::chrono::duration_cast<std::chrono::milliseconds>(model.created_at.time_since_epoch()).count());
             j["username"] = model.state.username;
             j["is_admin"] = model.state.is_admin;
-            std::string pb_raw = JsonCodec<security::PasswordBinding>::encode(model.state.password_binding);
-            Json::Value pb_json;
-            Json::CharReaderBuilder readerBuilder;
-            if (auto const reader = std::unique_ptr<Json::CharReader>(readerBuilder.newCharReader());
-                reader->parse(pb_raw.data(), pb_raw.data() + pb_raw.size(), &pb_json, nullptr)) {
-                j["password_binding"] = pb_json;
-            }
-            Json::StreamWriterBuilder builder;
-            builder["indentation"] = "";
-            return Json::writeString(builder, j);
+            j["password_binding"] =
+                    boost::json::parse(JsonCodec<security::PasswordBinding>::encode(model.state.password_binding));
+            return boost::json::serialize(j);
         }
 
         static std::optional<UserIdentity> decode(const EncodedType &data) {
-            Json::Value j;
-            Json::CharReaderBuilder readerBuilder;
-            if (auto const reader = std::unique_ptr<Json::CharReader>(readerBuilder.newCharReader());
-                !reader->parse(data.data(), data.data() + data.size(), &j, nullptr)) {
+            try {
+                auto j = boost::json::parse(data).as_object();
+                auto pb_raw = boost::json::serialize(j.at("password_binding"));
+                auto pb_opt = JsonCodec<security::PasswordBinding>::decode(pb_raw);
+                if (!pb_opt || !j.contains("username")) {
+                    return std::nullopt;
+                }
+                UserIdentity::State state{std::string(j.at("username").as_string()), std::move(*pb_opt),
+                                          j.at("is_admin").as_bool()};
+
+                if (j.contains("id") && j.contains("version") && j.contains("created_at")) {
+                    return UserIdentity::rehydrate(
+                            UUID::from_hex(std::string(j.at("id").as_string())).value(), j.at("version").as_uint64(),
+                            Timestamp{std::chrono::milliseconds{j.at("created_at").as_uint64()}}, std::move(state));
+                }
+                return UserIdentity::create(std::move(state));
+            } catch (...) {
                 return std::nullopt;
             }
-            Json::StreamWriterBuilder writerBuilder;
-            writerBuilder["indentation"] = "";
-            std::string pb_raw = Json::writeString(writerBuilder, j["password_binding"]);
-            auto pb_opt = JsonCodec<security::PasswordBinding>::decode(pb_raw);
-            if (!pb_opt || !j.isMember("username")) {
-                return std::nullopt;
-            }
-            UserIdentity::State state{j["username"].asString(), std::move(*pb_opt), j["is_admin"].asBool()};
-            if (j.isMember("id") && j.isMember("version") && j.isMember("created_at")) {
-                return UserIdentity::rehydrate(UUID::from_hex(j["id"].asString()).value(), j["version"].asUInt64(),
-                                               Timestamp{std::chrono::milliseconds{j["created_at"].asUInt64()}},
-                                               std::move(state));
-            }
-            return UserIdentity::create(std::move(state));
         }
     };
 
@@ -183,35 +191,33 @@ namespace mehara::prapancha {
         using EncodedType = std::string;
 
         static EncodedType encode(const Author &model) {
-            Json::Value j;
+            boost::json::object j;
             j["id"] = model.id.to_hex();
             j["display_name"] = model.state.display_name;
             j["bio"] = model.state.bio;
             j["version"] = model.version;
-            j["created_at"] = static_cast<Json::UInt64>(
+            j["created_at"] = static_cast<uint64_t>(
                     std::chrono::duration_cast<std::chrono::milliseconds>(model.created_at.time_since_epoch()).count());
-            Json::StreamWriterBuilder builder;
-            builder["indentation"] = "";
-            return Json::writeString(builder, j);
+            return boost::json::serialize(j);
         }
 
         static std::optional<Author> decode(const EncodedType &data) {
-            Json::Value j;
-            Json::CharReaderBuilder readerBuilder;
-            if (auto const reader = std::unique_ptr<Json::CharReader>(readerBuilder.newCharReader());
-                !reader->parse(data.data(), data.data() + data.size(), &j, nullptr)) {
+            try {
+                auto j = boost::json::parse(data).as_object();
+                if (!j.contains("display_name") || !j.contains("bio")) {
+                    return std::nullopt;
+                }
+                Author::State state{std::string(j.at("display_name").as_string()),
+                                    std::string(j.at("bio").as_string())};
+                if (j.contains("id") && j.contains("version") && j.contains("created_at")) {
+                    return Author::rehydrate(
+                            UUID::from_hex(std::string(j.at("id").as_string())).value(), j.at("version").as_uint64(),
+                            Timestamp{std::chrono::milliseconds{j.at("created_at").as_uint64()}}, std::move(state));
+                }
+                return std::nullopt;
+            } catch (...) {
                 return std::nullopt;
             }
-            if (!j.isMember("display_name") || !j.isMember("bio")) {
-                return std::nullopt;
-            }
-            Author::State state{j["display_name"].asString(), j["bio"].asString()};
-            if (j.isMember("id") && j.isMember("version") && j.isMember("created_at")) {
-                return Author::rehydrate(UUID::from_hex(j["id"].asString()).value(), j["version"].asUInt64(),
-                                         Timestamp{std::chrono::milliseconds{j["created_at"].asUInt64()}},
-                                         std::move(state));
-            }
-            return std::nullopt;
         }
     };
 
@@ -220,37 +226,34 @@ namespace mehara::prapancha {
         using EncodedType = std::string;
 
         static EncodedType encode(const Post &model) {
-            Json::Value j;
+            boost::json::object j;
             j["id"] = model.id.to_hex();
             j["author_id"] = model.state.author_id.to_hex();
             j["title"] = model.state.title;
             j["content"] = model.state.content;
             j["version"] = model.version;
-            j["created_at"] = static_cast<Json::UInt64>(
+            j["created_at"] = static_cast<uint64_t>(
                     std::chrono::duration_cast<std::chrono::milliseconds>(model.created_at.time_since_epoch()).count());
-            Json::StreamWriterBuilder builder;
-            builder["indentation"] = "";
-            return Json::writeString(builder, j);
+            return boost::json::serialize(j);
         }
 
         static std::optional<Post> decode(const EncodedType &data) {
-            Json::Value j;
-            const Json::CharReaderBuilder readerBuilder;
-            if (auto const reader = std::unique_ptr<Json::CharReader>(readerBuilder.newCharReader());
-                !reader->parse(data.data(), data.data() + data.size(), &j, nullptr)) {
+            try {
+                auto j = boost::json::parse(data).as_object();
+                if (!j.contains("author_id") || !j.contains("title") || !j.contains("content")) {
+                    return std::nullopt;
+                }
+                Post::State state{UUID::from_hex(std::string(j.at("author_id").as_string())).value(),
+                                  std::string(j.at("title").as_string()), std::string(j.at("content").as_string())};
+                if (j.contains("id") && j.contains("version") && j.contains("created_at")) {
+                    return Post::rehydrate(
+                            UUID::from_hex(std::string(j.at("id").as_string())).value(), j.at("version").as_uint64(),
+                            Timestamp{std::chrono::milliseconds{j.at("created_at").as_uint64()}}, std::move(state));
+                }
+                return Post::create(std::move(state));
+            } catch (...) {
                 return std::nullopt;
             }
-            if (!j.isMember("author_id") || !j.isMember("title") || !j.isMember("content")) {
-                return std::nullopt;
-            }
-            Post::State state{UUID::from_hex(j["author_id"].asString()).value(), j["title"].asString(),
-                              j["content"].asString()};
-            if (j.isMember("id") && j.isMember("version") && j.isMember("created_at")) {
-                return Post::rehydrate(UUID::from_hex(j["id"].asString()).value(), j["version"].asUInt64(),
-                                       Timestamp{std::chrono::milliseconds{j["created_at"].asUInt64()}},
-                                       std::move(state));
-            }
-            return Post::create(std::move(state));
         }
     };
 

@@ -9,13 +9,13 @@
 #include <memory>
 #include <string_view>
 
-#include <drogon/drogon.h>
+#include <boost/beast/http.hpp>
 
 #include "../codec.h"
 #include "../logger_registry.h"
 #include "../persistence.h"
+#include "../policy/context.h"
 #include "../policy/mapping.h"
-#include "../policy/service.h"
 #include "../uuid.h"
 
 namespace mehara::prapancha {
@@ -29,160 +29,54 @@ namespace mehara::prapancha {
     template<typename T>
     class BaseController : std::enable_shared_from_this<T> {
     public:
-        void dispatch(const drogon::HttpRequestPtr &request, drogon::AdviceCallback &&callback) {
+
+        using StringRequest = boost::beast::http::request<boost::beast::http::string_body>;
+        using StringResponse = boost::beast::http::response<boost::beast::http::string_body>;
+        using ResponseSender = std::function<void(StringResponse)>;
+
+        void dispatch(StringRequest &&request, ResponseSender &&sender) {
             static_assert(Controller<T>, "Controller concept not satisfied.");
             Loggers::App().log_info([&] {
-                return std::format("Dispatch [{}] {} {} ({} bytes).", T::ControllerName, request->getMethodString(),
-                                   request->getPath(), request->bodyLength());
+                return std::format("Dispatch [{}] {} {} ({} bytes).", T::ControllerName, request.method_string(),
+                                   request.target(), request.body().size());
             });
             using namespace policy;
+            using namespace boost::beast;
             using Traits = T::RequiredTraits;
 
-            auto runner = [this, callback = std::move(callback)]<size_t I>(this auto &&self, auto &&context) {
+            auto runner = [this, sender = std::move(sender), version = request.version()]<size_t I>(this auto &&self,
+                                                                                                    auto &&ctx) {
                 if constexpr (I == std::tuple_size_v<Traits>) {
-                    static_cast<T *>(this)->handle(std::forward<decltype(context)>(context), std::move(callback));
+                    static_cast<T *>(this)->handle(std::forward<decltype(ctx)>(ctx), std::move(sender));
                 } else {
                     using NextTrait = std::tuple_element_t<I, Traits>;
-                    auto res = PolicyFor<NextTrait>::execute(std::forward<decltype(context)>(context));
+                    auto res = PolicyFor<NextTrait>::execute(std::forward<decltype(ctx)>(ctx));
                     if (!res) {
-                        callback(res.error());
+                        http::response<http::string_body> error_res{res.error(), version};
+                        error_res.prepare_payload();
+                        sender(std::move(error_res));
                         return;
                     }
-                    self.template operator()<I + 1>(std::move(res.value()));
+                    self.template operator()<I + 1>(std::move(*res));
                 }
             };
-            runner.template operator()<0>(request);
+            runner.template operator()<0>(std::move(request));
         }
     };
 
     class RootController : public BaseController<RootController> {
     public:
         static constexpr std::string_view ControllerName = "root";
-        using RequiredTraits = std::tuple<policy::WithRequest>;
+        using RequiredTraits = std::tuple<policy::WithRequest<std::string>>;
 
-        void handle(const auto &context, drogon::AdviceCallback &&callback)
-            requires policy::HasRequest<decltype(context)>
-        {
-            const auto response = drogon::HttpResponse::newHttpResponse();
-            response->setStatusCode(drogon::k200OK);
-            response->setContentTypeCode(drogon::CT_TEXT_HTML);
-            response->setBody("प्रपञ्च — Prapancha!");
-            callback(response);
+        void handle(auto &&ctx, ResponseSender &&sender) {
+            boost::beast::http::response<boost::beast::http::string_body> res{boost::beast::http::status::ok,
+                                                                              ctx.request.version()};
+            res.set(boost::beast::http::field::content_type, "text/html; charset=utf-8");
+            res.body() = "प्रपञ्च — Prapancha!";
+            res.prepare_payload();
+            sender(std::move(res));
         }
-    };
-
-
-    template<typename T, Model M, Persistence<M> P, template<typename> typename C>
-        requires Codec<C<M>, M> && Codec<C<std::vector<M>>, std::vector<M>>
-    class ModelController : public BaseController<T> {
-    protected:
-        P _persistence;
-
-    public:
-        explicit ModelController(P persistence) : _persistence(std::move(persistence)) {}
-
-        using RequiredTraits = std::tuple<policy::WithRequest, policy::WithIdentity>;
-
-        void handle(const auto &context, drogon::AdviceCallback &&callback)
-            requires policy::HasRequest<decltype(context)> {
-            auto request = context.request;
-            const auto method = request->method();
-            auto derived = static_cast<T *>(this);
-
-            switch (method) {
-                case drogon::Get:
-                    derived->on_get(request, std::move(callback));
-                    break;
-                case drogon::Post:
-                    derived->on_create(request, std::move(callback));
-                    break;
-                case drogon::Put:
-                    derived->on_update(request, std::move(callback));
-                    break;
-                case drogon::Delete:
-                    derived->on_delete(request, std::move(callback));
-                    break;
-                default:
-                    callback(drogon::HttpResponse::newNotFoundResponse());
-                    break;
-            }
-        }
-
-        void on_get(const drogon::HttpRequestPtr &request, drogon::AdviceCallback &&callback) {
-            auto id_str = request->getParameter("id");
-            if (id_str.empty()) {
-                auto items = _persistence.all();
-                callback(drogon::HttpResponse::newHttpJsonResponse(C<std::vector<M>>::encode(items)));
-            } else {
-                auto id_opt = UUID::from_hex(id_str);
-                auto item = id_opt ? _persistence.load(*id_opt) : std::nullopt;
-                item ? callback(drogon::HttpResponse::newHttpJsonResponse(C<M>::encode(*item)))
-                     : callback(drogon::HttpResponse::newNotFoundResponse());
-            }
-        }
-
-        void on_create(const drogon::HttpRequestPtr &request, drogon::AdviceCallback &&callback) {
-            const auto body = request->getBody();
-            if (body.empty()) {
-                callback(drogon::HttpResponse::newHttpResponse(drogon::k400BadRequest, drogon::CT_TEXT_PLAIN));
-                return;
-            }
-            auto model_opt = C<M>::decode(std::string(body));
-            if (!model_opt) {
-                callback(drogon::HttpResponse::newHttpResponse(drogon::k422UnprocessableEntity, drogon::CT_TEXT_PLAIN));
-                return;
-            }
-            _persistence.save(*model_opt);
-            callback(drogon::HttpResponse::newHttpResponse(drogon::k201Created, drogon::CT_TEXT_PLAIN));
-        }
-
-        void on_update(const drogon::HttpRequestPtr &request, drogon::AdviceCallback &&callback) {
-            auto id_opt = UUID::from_hex(request->getParameter("id"));
-            const auto body = request->getBody();
-            if (!id_opt || body.empty()) {
-                callback(drogon::HttpResponse::newHttpResponse(drogon::k400BadRequest, drogon::CT_TEXT_PLAIN));
-                return;
-            }
-            auto update_opt = C<M>::decode(std::string(body));
-            auto existing = _persistence.load(*id_opt);
-            if (existing && update_opt) {
-                _persistence.save(existing->patch(update_opt->state));
-                callback(drogon::HttpResponse::newHttpResponse(drogon::k204NoContent, drogon::CT_TEXT_PLAIN));
-            } else {
-                callback(drogon::HttpResponse::newNotFoundResponse());
-            }
-        }
-
-        void on_delete(const drogon::HttpRequestPtr &request, drogon::AdviceCallback &&callback) {
-            const auto id_opt = UUID::from_hex(request->getParameter("id"));
-            if (id_opt && _persistence.remove(*id_opt)) {
-                callback(drogon::HttpResponse::newHttpResponse(drogon::k204NoContent, drogon::CT_TEXT_PLAIN));
-            } else {
-                callback(drogon::HttpResponse::newNotFoundResponse());
-            }
-        }
-    };
-
-    template<Persistence<Author> P, template<typename> typename C>
-    class AuthorController : public ModelController<AuthorController<P, C>, Author, P, C> {
-    public:
-        static constexpr std::string_view ControllerName = "AuthorController";
-        using ModelController<AuthorController, Author, P, C>::ModelController;
-
-        void on_create(const drogon::HttpRequestPtr &, drogon::AdviceCallback &&callback) {
-            callback(drogon::HttpResponse::newHttpResponse(drogon::k405MethodNotAllowed, drogon::CT_TEXT_PLAIN));
-        }
-
-        void on_delete(const drogon::HttpRequestPtr &, drogon::AdviceCallback &&callback) {
-            callback(drogon::HttpResponse::newHttpResponse(drogon::k405MethodNotAllowed, drogon::CT_TEXT_PLAIN));
-        }
-    };
-
-    template<Persistence<Post> P, template<typename> typename C>
-    class PostController : public ModelController<PostController<P, C>, Post, P, C> {
-    public:
-        static constexpr std::string_view ControllerName = "PostController";
-        using ModelController<PostController, Post, P, C>::ModelController;
     };
 
 } // namespace mehara::prapancha

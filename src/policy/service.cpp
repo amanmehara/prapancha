@@ -6,18 +6,18 @@
 
 #include <expected>
 
-#include "drogon/HttpRequest.h"
-#include "drogon/HttpResponse.h"
+#include <boost/beast/http.hpp>
 
 #include "context.h"
 
 namespace mehara::prapancha::policy::internal {
 
-    Result<WithIdentity> authenticate(const drogon::HttpRequestPtr &req) {
-        if (const auto session = req->session(); session && session->find("identity")) {
-            return session->get<WithIdentity>("identity");
+    template<typename Body>
+    Result<WithIdentity> authenticate(const boost::beast::http::request<Body> &request) {
+        if (false) {
+            return {};
         }
-        return std::unexpected(drogon::HttpResponse::newHttpResponse(drogon::k401Unauthorized, drogon::CT_TEXT_PLAIN));
+        return std::unexpected(boost::beast::http::status::unauthorized);
     }
 
 } // namespace mehara::prapancha::policy::internal
