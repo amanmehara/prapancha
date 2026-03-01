@@ -143,13 +143,20 @@ namespace mehara::prapancha::logging {
         }
 
         void dispatch(LogLevel level, std::string_view msg) {
+            if (level < min_level && !is_breadcrumb_active()) {
+                return;
+            }
+            auto now = std::chrono::system_clock::now();
+            auto thread_id = std::this_thread::get_id();
+            std::string formatted_msg =
+                    std::format("{:%FT%T}Z [{}] [{}] [{}] - {}", now, thread_id, get_traits(level).name, category, msg);
             if (level >= min_level) {
                 if (level >= LogLevel::Error && forensics_cfg_) {
                     flush_forensics(level);
                 }
-                sinks.dispatch(level, msg);
+                sinks.dispatch(level, formatted_msg);
             } else if (is_breadcrumb_active()) {
-                ctx.history.emplace_back(msg);
+                ctx.history.emplace_back(std::move(formatted_msg));
                 if (ctx.history.size() > forensics_cfg_->breadcrumbs.per_thread_limit)
                     ctx.history.pop_front();
             }
