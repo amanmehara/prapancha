@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 21/02/26.
 //
 
-#ifndef PRAPANCHA_SECURITY_HASHER_H
-#define PRAPANCHA_SECURITY_HASHER_H
+#ifndef PRAPANCHA_SECURITY_HASHER_H_
+#define PRAPANCHA_SECURITY_HASHER_H_
 
 #include <expected>
 #include <string>
@@ -35,4 +35,4 @@ namespace mehara::prapancha::security {
 
 } // namespace mehara::prapancha::security
 
-#endif // PRAPANCHA_SECURITY_HASHER_H
+#endif // PRAPANCHA_SECURITY_HASHER_H_

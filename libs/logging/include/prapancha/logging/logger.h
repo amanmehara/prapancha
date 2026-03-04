@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 22/02/26.
 //
 
-#ifndef PRAPANCHA_LOGGER_H
-#define PRAPANCHA_LOGGER_H
+#ifndef PRAPANCHA_LOGGER_H_
+#define PRAPANCHA_LOGGER_H_
 
 #include <concepts>
 #include <deque>
@@ -192,4 +192,4 @@ namespace mehara::prapancha::logging {
 
 } // namespace mehara::prapancha::logging
 
-#endif // PRAPANCHA_LOGGER_H
+#endif // PRAPANCHA_LOGGER_H_

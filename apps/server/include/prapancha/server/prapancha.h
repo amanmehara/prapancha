@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 01/02/26.
 //
 
-#ifndef PRAPANCHA_SERVER_PRAPANCHA_H
-#define PRAPANCHA_SERVER_PRAPANCHA_H
+#ifndef PRAPANCHA_SERVER_PRAPANCHA_H_
+#define PRAPANCHA_SERVER_PRAPANCHA_H_
 
 namespace mehara::prapancha {
 
@@ -11,4 +11,4 @@ namespace mehara::prapancha {
 
 }
 
-#endif // PRAPANCHA_SERVER_PRAPANCHA_H
+#endif // PRAPANCHA_SERVER_PRAPANCHA_H_

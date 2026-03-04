@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 03/02/26.
 //
 
-#ifndef PRAPANCHA_SERVER_MODEL_H
-#define PRAPANCHA_SERVER_MODEL_H
+#ifndef PRAPANCHA_SERVER_MODEL_H_
+#define PRAPANCHA_SERVER_MODEL_H_
 
 #include <chrono>
 #include <concepts>
@@ -178,4 +178,4 @@ namespace mehara::prapancha {
 
 } // namespace mehara::prapancha
 
-#endif // PRAPANCHA_SERVER_MODEL_H
+#endif // PRAPANCHA_SERVER_MODEL_H_

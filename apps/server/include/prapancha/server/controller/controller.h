@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 01/02/26.
 //
 
-#ifndef PRAPANCHA_SERVER_CONTROLLER_CONTROLLER_H
-#define PRAPANCHA_SERVER_CONTROLLER_CONTROLLER_H
+#ifndef PRAPANCHA_SERVER_CONTROLLER_CONTROLLER_H_
+#define PRAPANCHA_SERVER_CONTROLLER_CONTROLLER_H_
 
 #include <concepts>
 #include <memory>
@@ -81,4 +81,4 @@ namespace mehara::prapancha {
 
 } // namespace mehara::prapancha
 
-#endif // PRAPANCHA_SERVER_CONTROLLER_CONTROLLER_H
+#endif // PRAPANCHA_SERVER_CONTROLLER_CONTROLLER_H_

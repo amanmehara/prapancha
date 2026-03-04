@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 25/02/26.
 //
 
-#ifndef PRAPANCHA_LOGGING_ASYNC_SINK_H
-#define PRAPANCHA_LOGGING_ASYNC_SINK_H
+#ifndef PRAPANCHA_LOGGING_ASYNC_SINK_H_
+#define PRAPANCHA_LOGGING_ASYNC_SINK_H_
 
 #include <atomic>
 #include <condition_variable>
@@ -77,4 +77,4 @@ namespace mehara::prapancha::logging {
 
 } // namespace mehara::prapancha::logging
 
-#endif // PRAPANCHA_LOGGING_ASYNC_SINK_H
+#endif // PRAPANCHA_LOGGING_ASYNC_SINK_H_

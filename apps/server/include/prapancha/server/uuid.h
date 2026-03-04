@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 04/02/26.
 //
 
-#ifndef PRAPANCHA_SERVER_UUID_H
-#define PRAPANCHA_SERVER_UUID_H
+#ifndef PRAPANCHA_SERVER_UUID_H_
+#define PRAPANCHA_SERVER_UUID_H_
 
 #include <array>
 #include <optional>
@@ -57,4 +57,4 @@ namespace mehara::prapancha {
 
 } // namespace mehara::prapancha
 
-#endif // PRAPANCHA_SERVER_UUID_H
+#endif // PRAPANCHA_SERVER_UUID_H_

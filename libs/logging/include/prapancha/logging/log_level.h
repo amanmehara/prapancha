@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 22/02/26.
 //
 
-#ifndef PRAPANCHA_LOGGING_LOG_LEVEL_H
-#define PRAPANCHA_LOGGING_LOG_LEVEL_H
+#ifndef PRAPANCHA_LOGGING_LOG_LEVEL_H_
+#define PRAPANCHA_LOGGING_LOG_LEVEL_H_
 
 #include <string_view>
 
@@ -39,4 +39,4 @@ namespace mehara::prapancha::logging {
 
 } // namespace mehara::prapancha::logging
 
-#endif // PRAPANCHA_LOGGING_LOG_LEVEL_H
+#endif // PRAPANCHA_LOGGING_LOG_LEVEL_H_

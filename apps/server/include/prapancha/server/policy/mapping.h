@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 20/02/26.
 //
 
-#ifndef PRAPANCHA_SERVER_POLICY_MAPPING_H
-#define PRAPANCHA_SERVER_POLICY_MAPPING_H
+#ifndef PRAPANCHA_SERVER_POLICY_MAPPING_H_
+#define PRAPANCHA_SERVER_POLICY_MAPPING_H_
 
 #include "context.h"
 #include "service.h"
@@ -48,4 +48,4 @@ namespace mehara::prapancha::policy {
 
 } // namespace mehara::prapancha::policy
 
-#endif // PRAPANCHA_SERVER_POLICY_MAPPING_H
+#endif // PRAPANCHA_SERVER_POLICY_MAPPING_H_

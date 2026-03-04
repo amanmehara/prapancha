@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 15/02/26.
 //
 
-#ifndef PRAPANCHA_SERVER_CONFIGURATION_H
-#define PRAPANCHA_SERVER_CONFIGURATION_H
+#ifndef PRAPANCHA_SERVER_CONFIGURATION_H_
+#define PRAPANCHA_SERVER_CONFIGURATION_H_
 
 #include <limits>
 #include <string>
@@ -73,4 +73,4 @@ namespace mehara::prapancha::configuration {
 
 } // namespace mehara::prapancha::configuration
 
-#endif // PRAPANCHA_SERVER_CONFIGURATION_H
+#endif // PRAPANCHA_SERVER_CONFIGURATION_H_

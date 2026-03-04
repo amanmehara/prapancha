@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 03/02/26.
 //
 
-#ifndef PRAPANCHA_SERVER_PERSISTENCE_PERSISTENCE_H
-#define PRAPANCHA_SERVER_PERSISTENCE_PERSISTENCE_H
+#ifndef PRAPANCHA_SERVER_PERSISTENCE_PERSISTENCE_H_
+#define PRAPANCHA_SERVER_PERSISTENCE_PERSISTENCE_H_
 
 #include <filesystem>
 #include <fstream>
@@ -94,4 +94,4 @@ namespace mehara::prapancha {
 
 } // namespace mehara::prapancha
 
-#endif // PRAPANCHA_SERVER_PERSISTENCE_PERSISTENCE_H
+#endif // PRAPANCHA_SERVER_PERSISTENCE_PERSISTENCE_H_

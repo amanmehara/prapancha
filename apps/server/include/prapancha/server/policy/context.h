@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 18/02/26.
 //
 
-#ifndef PRAPANCHA_SERVER_POLICY_CONTEXT_H
-#define PRAPANCHA_SERVER_POLICY_CONTEXT_H
+#ifndef PRAPANCHA_SERVER_POLICY_CONTEXT_H_
+#define PRAPANCHA_SERVER_POLICY_CONTEXT_H_
 
 #include <concepts>
 #include <expected>
@@ -81,4 +81,4 @@ namespace mehara::prapancha::policy {
 
 } // namespace mehara::prapancha::policy
 
-#endif // PRAPANCHA_SERVER_POLICY_CONTEXT_H
+#endif // PRAPANCHA_SERVER_POLICY_CONTEXT_H_
