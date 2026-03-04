@@ -8,7 +8,7 @@
 #include <filesystem>
 #include <fstream>
 
-#include <prapancha/server/codec.h>
+#include <prapancha/server/codec/codec.h>
 #include <prapancha/server/model.h>
 #include <prapancha/server/uuid.h>
 

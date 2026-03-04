@@ -2,7 +2,7 @@
 // Created by Aman Mehara on 01/02/26.
 //
 
-#include "../include/prapancha/server/prapancha.h"
+#include <prapancha/server/prapancha.h>
 
 #include <future>
 
@@ -18,7 +18,6 @@
 #include <prapancha/server/router.h>
 
 namespace mehara::prapancha {
-
     class Session : public std::enable_shared_from_this<Session> {
         boost::asio::ip::tcp::socket socket_;
         std::shared_ptr<Router> router_;

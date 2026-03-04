@@ -11,7 +11,7 @@
 
 #include <boost/beast/http.hpp>
 
-#include <prapancha/server/codec.h>
+#include <prapancha/server/codec/codec.h>
 #include <prapancha/server/logger_registry.h>
 #include <prapancha/server/persistence/persistence.h>
 #include <prapancha/server/policy/context.h>
