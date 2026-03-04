@@ -2,7 +2,7 @@
 // Created by Aman Mehara on 18/02/26.
 //
 
-#include "../../include/prapancha/server/policy/service.h"
+#include <prapancha/server/policy/service.h>
 
 #include <expected>
 

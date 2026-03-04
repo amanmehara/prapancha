@@ -5,8 +5,8 @@
 #ifndef PRAPANCHA_SERVER_POLICY_MAPPING_H_
 #define PRAPANCHA_SERVER_POLICY_MAPPING_H_
 
-#include "context.h"
-#include "service.h"
+#include <prapancha/server/policy/context.h>
+#include <prapancha/server/policy/service.h>
 
 namespace mehara::prapancha::policy {
 

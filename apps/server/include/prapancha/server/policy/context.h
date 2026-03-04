@@ -11,7 +11,7 @@
 
 #include <boost/beast/http.hpp>
 
-#include "../uuid.h"
+#include <prapancha/server/uuid.h>
 
 namespace mehara::prapancha::policy {
 

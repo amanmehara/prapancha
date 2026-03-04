@@ -9,7 +9,7 @@
 #include <map>
 #include <memory>
 
-#include "boost/beast/http.hpp"
+#include <boost/beast/http.hpp>
 
 #include <prapancha/server/configuration.h>
 #include <prapancha/server/controller/controller.h>
