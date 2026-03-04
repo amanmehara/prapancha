@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 10/02/26.
 //
 
-#ifndef PRAPANCHA_SERVER_CODEC_H_
-#define PRAPANCHA_SERVER_CODEC_H_
+#ifndef PRAPANCHA_SERVER_CODEC_CODEC_H_
+#define PRAPANCHA_SERVER_CODEC_CODEC_H_
 
 #include <charconv>
 #include <chrono>
@@ -259,4 +259,4 @@ namespace mehara::prapancha {
 
 } // namespace mehara::prapancha
 
-#endif // PRAPANCHA_SERVER_CODEC_H_
+#endif // PRAPANCHA_SERVER_CODEC_CODEC_H_
