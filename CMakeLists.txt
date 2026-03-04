@@ -52,4 +52,5 @@ if (TARGET OpenSSL::SSL)
     add_library(prapancha::ssl ALIAS OpenSSL::SSL)
 endif ()
 
-add_subdirectory(src)
+add_subdirectory(apps)
+add_subdirectory(libs)

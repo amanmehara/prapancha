@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 23/02/26.
 //
 
-#ifndef PRAPANCHA_LOGGER_REGISTRY_H
-#define PRAPANCHA_LOGGER_REGISTRY_H
+#ifndef PRAPANCHA_SERVER_LOGGER_REGISTRY_H
+#define PRAPANCHA_SERVER_LOGGER_REGISTRY_H
 
 #include <prapancha/logging/async_sink.h>
 #include <prapancha/logging/configuration.h>
@@ -32,4 +32,4 @@ namespace mehara::prapancha {
 
 } // namespace mehara::prapancha
 
-#endif // PRAPANCHA_LOGGER_REGISTRY_H
+#endif // PRAPANCHA_SERVER_LOGGER_REGISTRY_H

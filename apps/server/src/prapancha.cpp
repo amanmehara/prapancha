@@ -2,7 +2,7 @@
 // Created by Aman Mehara on 01/02/26.
 //
 
-#include "prapancha.h"
+#include "../include/prapancha/server/prapancha.h"
 
 #include <future>
 
@@ -13,9 +13,9 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 
-#include "configuration.h"
-#include "logger_registry.h"
-#include "router.h"
+#include <prapancha/server/configuration.h>
+#include <prapancha/server/logger_registry.h>
+#include <prapancha/server/router.h>
 
 namespace mehara::prapancha {
 

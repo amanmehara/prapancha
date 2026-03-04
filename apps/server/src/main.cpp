@@ -2,7 +2,7 @@
 // Created by Aman Mehara on 31/01/26.
 //
 
-#include "prapancha.h"
+#include <prapancha/server/prapancha.h>
 
 int main(int argc, char *argv[]) {
 

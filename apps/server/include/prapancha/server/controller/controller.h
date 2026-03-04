@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 01/02/26.
 //
 
-#ifndef PRAPANCHA_CONTROLLER_H
-#define PRAPANCHA_CONTROLLER_H
+#ifndef PRAPANCHA_SERVER_CONTROLLER_CONTROLLER_H
+#define PRAPANCHA_SERVER_CONTROLLER_CONTROLLER_H
 
 #include <concepts>
 #include <memory>
@@ -11,12 +11,12 @@
 
 #include <boost/beast/http.hpp>
 
-#include "../codec.h"
-#include "../logger_registry.h"
-#include "../persistence.h"
-#include "../policy/context.h"
-#include "../policy/mapping.h"
-#include "../uuid.h"
+#include <prapancha/server/codec.h>
+#include <prapancha/server/logger_registry.h>
+#include <prapancha/server/persistence/persistence.h>
+#include <prapancha/server/policy/context.h>
+#include <prapancha/server/policy/mapping.h>
+#include <prapancha/server/uuid.h>
 
 namespace mehara::prapancha {
 
@@ -81,4 +81,4 @@ namespace mehara::prapancha {
 
 } // namespace mehara::prapancha
 
-#endif // PRAPANCHA_CONTROLLER_H
+#endif // PRAPANCHA_SERVER_CONTROLLER_CONTROLLER_H

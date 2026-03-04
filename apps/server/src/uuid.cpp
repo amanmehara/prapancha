@@ -2,7 +2,7 @@
 // Created by Aman Mehara on 04/02/26.
 //
 
-#include "uuid.h"
+#include <prapancha/server/uuid.h>
 
 #include <chrono>
 #include <random>

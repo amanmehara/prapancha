@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 03/02/26.
 //
 
-#ifndef PRAPANCHA_MODEL_H
-#define PRAPANCHA_MODEL_H
+#ifndef PRAPANCHA_SERVER_MODEL_H
+#define PRAPANCHA_SERVER_MODEL_H
 
 #include <chrono>
 #include <concepts>
@@ -13,7 +13,7 @@
 #include <utility>
 
 #include <prapancha/security/hasher.h>
-#include "uuid.h"
+#include <prapancha/server/uuid.h>
 
 namespace mehara::prapancha {
 
@@ -178,4 +178,4 @@ namespace mehara::prapancha {
 
 } // namespace mehara::prapancha
 
-#endif // PRAPANCHA_MODEL_H
+#endif // PRAPANCHA_SERVER_MODEL_H

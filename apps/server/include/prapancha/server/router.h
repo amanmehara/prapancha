@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 01/02/26.
 //
 
-#ifndef PRAPANCHA_ROUTER_H
-#define PRAPANCHA_ROUTER_H
+#ifndef PRAPANCHA_SERVER_ROUTER_H
+#define PRAPANCHA_SERVER_ROUTER_H
 
 #include <functional>
 #include <map>
@@ -11,8 +11,8 @@
 
 #include "boost/beast/http.hpp"
 
-#include "configuration.h"
-#include "controller/controller.h"
+#include <prapancha/server/configuration.h>
+#include <prapancha/server/controller/controller.h>
 
 namespace mehara::prapancha {
 
@@ -43,4 +43,4 @@ namespace mehara::prapancha {
 
 } // namespace mehara::prapancha
 
-#endif // PRAPANCHA_ROUTER_H
+#endif // PRAPANCHA_SERVER_ROUTER_H

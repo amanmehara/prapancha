@@ -2,7 +2,7 @@
 // Created by Aman Mehara on 15/02/26.
 //
 
-#include "configuration.h"
+#include <prapancha/server/configuration.h>
 
 #include <charconv>
 #include <iostream>

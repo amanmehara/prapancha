@@ -2,12 +2,12 @@
 // Created by Aman Mehara on 01/02/26.
 //
 
-#include "router.h"
+#include "../include/prapancha/server/router.h"
 
 #include <boost/beast/http.hpp>
 
-#include "codec.h"
-#include "controller/controller.h"
+#include <prapancha/server/codec.h>
+#include <prapancha/server/controller/controller.h>
 
 namespace mehara::prapancha {
 

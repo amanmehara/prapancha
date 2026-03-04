@@ -2,8 +2,8 @@
 // Created by Aman Mehara on 10/02/26.
 //
 
-#ifndef PRAPANCHA_CODEC_H
-#define PRAPANCHA_CODEC_H
+#ifndef PRAPANCHA_SERVER_CODEC_H
+#define PRAPANCHA_SERVER_CODEC_H
 
 #include <charconv>
 #include <chrono>
@@ -15,8 +15,8 @@
 #include <boost/json.hpp>
 
 #include <prapancha/security/hasher.h>
-#include "model.h"
-#include "uuid.h"
+#include <prapancha/server/model.h>
+#include <prapancha/server/uuid.h>
 
 namespace mehara::prapancha {
 
@@ -259,4 +259,4 @@ namespace mehara::prapancha {
 
 } // namespace mehara::prapancha
 
-#endif // PRAPANCHA_CODEC_H
+#endif // PRAPANCHA_SERVER_CODEC_H

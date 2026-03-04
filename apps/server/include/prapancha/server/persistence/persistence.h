@@ -2,15 +2,15 @@
 // Created by Aman Mehara on 03/02/26.
 //
 
-#ifndef PRAPANCHA_PERSISTENCE_H
-#define PRAPANCHA_PERSISTENCE_H
+#ifndef PRAPANCHA_SERVER_PERSISTENCE_PERSISTENCE_H
+#define PRAPANCHA_SERVER_PERSISTENCE_PERSISTENCE_H
 
 #include <filesystem>
 #include <fstream>
 
-#include "codec.h"
-#include "model.h"
-#include "uuid.h"
+#include <prapancha/server/codec.h>
+#include <prapancha/server/model.h>
+#include <prapancha/server/uuid.h>
 
 namespace mehara::prapancha {
 
@@ -94,4 +94,4 @@ namespace mehara::prapancha {
 
 } // namespace mehara::prapancha
 
-#endif // PRAPANCHA_PERSISTENCE_H
+#endif // PRAPANCHA_SERVER_PERSISTENCE_PERSISTENCE_H

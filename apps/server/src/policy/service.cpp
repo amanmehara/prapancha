@@ -2,13 +2,13 @@
 // Created by Aman Mehara on 18/02/26.
 //
 
-#include "service.h"
+#include "../../include/prapancha/server/policy/service.h"
 
 #include <expected>
 
 #include <boost/beast/http.hpp>
 
-#include "context.h"
+#include <prapancha/server/policy/context.h>
 
 namespace mehara::prapancha::policy::internal {
 
