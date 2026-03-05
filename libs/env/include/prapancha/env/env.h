@@ -70,7 +70,7 @@ namespace mehara::prapancha::env {
     auto evolve(Current &&env, Args &&...args) -> Result<Augmented<Current, NextCapability>> {
         return CapabilityFor<NextCapability>::execute(std::forward<Args>(args)...)
                 .transform([env = std::forward<Current>(env)](NextCapability &&capability) mutable {
-                    return Augmented<Current, NextCapability>(std::forward<Current>(env), std::move(capability));
+                    return Augmented<Current, NextCapability>(std::move(env), std::move(capability));
                 });
     }
 
