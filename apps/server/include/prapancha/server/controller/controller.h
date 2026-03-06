@@ -14,8 +14,7 @@
 #include <prapancha/server/codec/codec.h>
 #include <prapancha/server/logger_registry.h>
 #include <prapancha/server/persistence/persistence.h>
-#include <prapancha/server/policy/context.h>
-#include <prapancha/server/policy/mapping.h>
+#include <prapancha/server/policy/policy.h>
 #include <prapancha/server/uuid.h>
 
 namespace mehara::prapancha {
@@ -67,7 +66,7 @@ namespace mehara::prapancha {
     class RootController : public BaseController<RootController> {
     public:
         static constexpr std::string_view ControllerName = "root";
-        using RequiredTraits = std::tuple<policy::WithRequest<std::string>>;
+        using RequiredTraits = std::tuple<policy::WithRequest<boost::beast::http::string_body>>;
 
         void handle(auto &&ctx, ResponseSender &&sender) {
             boost::beast::http::response<boost::beast::http::string_body> res{boost::beast::http::status::ok,

@@ -1,7 +1,6 @@
 add_executable(${PROJECT_NAME}
         src/configuration.cpp
         src/main.cpp
-        src/policy/service.cpp
         src/prapancha.cpp
         src/router.cpp
         src/uuid.cpp
@@ -22,6 +21,7 @@ target_link_libraries(${PROJECT_NAME} PRIVATE
         Boost::headers
         Boost::json
         Boost::system
+        prapancha::env
         prapancha::logging
         prapancha::security
 )

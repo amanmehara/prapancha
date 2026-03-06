@@ -6,6 +6,7 @@
 #define PRAPANCHA_ENV_H
 
 #include <concepts>
+#include <cstddef>
 #include <expected>
 #include <system_error>
 #include <type_traits>
@@ -14,7 +15,7 @@
 namespace mehara::prapancha::env {
 
     template<typename Capability, typename... Capabilities>
-    struct is_unique : std::bool_constant<(!std::is_same_v<Capability, Capabilities> && ...)> {};
+    struct is_unique : std::bool_constant<(size_t(std::is_same_v<Capability, Capabilities>) + ...) == 1> {};
 
     template<typename... Capabilities>
     struct Env : Capabilities... {
