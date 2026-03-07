@@ -31,8 +31,8 @@ namespace mehara::prapancha {
 
         using StringRequest = boost::beast::http::request<boost::beast::http::string_body>;
         using StringResponse = boost::beast::http::response<boost::beast::http::string_body>;
-        using ResponseSender = std::function<void(StringResponse)>;
 
+        template<typename ResponseSender>
         void dispatch(StringRequest &&request, ResponseSender &&sender) {
             static_assert(Controller<T>, "Controller concept not satisfied.");
             Loggers::App().log_info([&] {
@@ -43,7 +43,7 @@ namespace mehara::prapancha {
             using namespace boost::beast;
             using Traits = T::RequiredTraits;
 
-            auto runner = [this, sender = std::move(sender), version = request.version()]<size_t I>(this auto &&self,
+            auto runner = [this, sender = std::forward<ResponseSender>(sender), version = request.version()]<size_t I>(this auto &&self,
                                                                                                     auto &&ctx) {
                 if constexpr (I == std::tuple_size_v<Traits>) {
                     static_cast<T *>(this)->handle(std::forward<decltype(ctx)>(ctx), std::move(sender));
@@ -56,7 +56,7 @@ namespace mehara::prapancha {
                         sender(std::move(error_res));
                         return;
                     }
-                    self.template operator()<I + 1>(std::move(*res));
+                    std::forward<decltype(self)>(self).template operator()<I + 1>(std::move(*res));
                 }
             };
             runner.template operator()<0>(std::move(request));
@@ -68,7 +68,7 @@ namespace mehara::prapancha {
         static constexpr std::string_view ControllerName = "root";
         using RequiredTraits = std::tuple<policy::WithRequest<boost::beast::http::string_body>>;
 
-        void handle(auto &&ctx, ResponseSender &&sender) {
+        void handle(auto &&ctx, auto &&sender) {
             boost::beast::http::response<boost::beast::http::string_body> res{boost::beast::http::status::ok,
                                                                               ctx.request.version()};
             res.set(boost::beast::http::field::content_type, "text/html; charset=utf-8");

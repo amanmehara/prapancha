@@ -2,7 +2,6 @@ add_executable(${PROJECT_NAME}
         src/configuration.cpp
         src/main.cpp
         src/prapancha.cpp
-        src/router.cpp
         src/uuid.cpp
 )
 

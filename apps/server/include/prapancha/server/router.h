@@ -5,9 +5,9 @@
 #ifndef PRAPANCHA_SERVER_ROUTER_H_
 #define PRAPANCHA_SERVER_ROUTER_H_
 
-#include <functional>
-#include <map>
-#include <memory>
+#include <algorithm>
+#include <cstddef>
+#include <string_view>
 
 #include <boost/beast/http.hpp>
 
@@ -16,29 +16,68 @@
 
 namespace mehara::prapancha {
 
-    using Handler =
-            std::function<void(boost::beast::http::request<boost::beast::http::string_body> &&,
-                               std::function<void(boost::beast::http::response<boost::beast::http::string_body>)>)>;
+    using Method = boost::beast::http::verb;
 
-    class Router {
-    public:
-        explicit Router(boost::asio::io_context &ioc, const configuration::Configuration *configuration);
+    template<std::size_t N>
+    struct StaticPath {
+        char data[N]{};
 
-        void register_routes();
+        constexpr StaticPath(const char (&str)[N]) {
+            std::copy_n(str, N, data);
+        }
 
-        void dispatch(boost::beast::http::request<boost::beast::http::string_body> &&req,
-                      std::function<void(boost::beast::http::response<boost::beast::http::string_body>)> &&send);
+        [[nodiscard]] constexpr std::string_view view() const noexcept {
+            return {data, N > 0 ? N - 1 : 0};
+        }
+    };
+
+    template<std::size_t N>
+    StaticPath(const char (&)[N]) -> StaticPath<N>;
+
+    template<StaticPath Path, Method Verb, auto HandlerFunc>
+    struct Route {
+        static constexpr std::string_view path = Path.view();
+        static constexpr Method method = Verb;
+
+        template<typename Req, typename Send>
+        static void execute(Req&& req, Send&& send) {
+            HandlerFunc(std::forward<Req>(req), std::forward<Send>(send));
+        }
+    };
+
+    template<typename... Routes>
+    struct StaticRouter {
+        template<typename Req, typename Send>
+        static void dispatch(Req&& req, Send&& send) {
+            std::string_view target = req.target();
+            if (auto pos = target.find('?'); pos != std::string_view::npos) {
+                target = target.substr(0, pos);
+            }
+
+            const Method req_method = req.method();
+
+            bool found = ((
+                (target == Routes::path && req_method == Routes::method) ?
+                (Routes::execute(std::forward<Req>(req), std::forward<Send>(send)), true) :
+                false
+            ) || ...);
+
+            if (!found) {
+                send_404(std::forward<Req>(req), std::forward<Send>(send));
+            }
+        }
 
     private:
-        template<typename T>
-            requires std::is_base_of_v<BaseController<T>, T>
-        Handler to_handler(const std::shared_ptr<T> &controller);
-
-        std::string make_route_key(boost::beast::http::verb method, std::string_view target) const;
-
-        boost::asio::io_context &ioc_;
-        const configuration::Configuration *configuration_;
-        std::map<std::string, Handler> routes_;
+        template<typename Req, typename Send>
+        static void send_404(Req&& req, Send&& send) {
+            boost::beast::http::response<boost::beast::http::string_body> res{
+                boost::beast::http::status::not_found, req.version()};
+            res.set(boost::beast::http::field::server, "Prapancha");
+            res.set(boost::beast::http::field::content_type, "text/plain");
+            res.body() = "404 Not Found";
+            res.prepare_payload();
+            std::forward<Send>(send)(std::move(res));
+        }
     };
 
 } // namespace mehara::prapancha
