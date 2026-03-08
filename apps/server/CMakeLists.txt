@@ -1,4 +1,5 @@
 add_executable(${PROJECT_NAME}
+        src/beast_adapter.cpp
         src/configuration.cpp
         src/main.cpp
         src/prapancha.cpp

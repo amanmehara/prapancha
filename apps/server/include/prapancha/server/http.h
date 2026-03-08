@@ -59,7 +59,6 @@ namespace mehara::prapancha::http {
     struct Request {
         Method method;
         std::string target;
-        int version;
         std::vector<Header> headers;
         std::vector<uint8_t> body;
 

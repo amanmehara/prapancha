@@ -13,6 +13,7 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 
+#include <prapancha/server/beast_adapter.h>
 #include <prapancha/server/configuration.h>
 #include <prapancha/server/controller/controller.h>
 #include <prapancha/server/http.h>
@@ -20,31 +21,6 @@
 #include <prapancha/server/router.h>
 
 namespace mehara::prapancha {
-
-    static http::Request
-    translate_request(boost::beast::http::request<boost::beast::http::vector_body<uint8_t>> &b_req) {
-        http::Request p_req;
-        p_req.target = std::string(b_req.target());
-        p_req.version = b_req.version();
-
-        switch (b_req.method()) {
-            case boost::beast::http::verb::get:
-                p_req.method = http::Method::Get;
-                break;
-            case boost::beast::http::verb::post:
-                p_req.method = http::Method::Post;
-                break;
-            default:
-                p_req.method = http::Method::Unknown;
-        }
-
-        for (auto const &field: b_req) {
-            p_req.headers.push_back({std::string(field.name_string()), std::string(field.value())});
-        }
-
-        p_req.body = std::move(b_req.body());
-        return p_req;
-    }
 
     using ResponseSender = std::function<void(http::Response)>;
 
@@ -82,37 +58,28 @@ namespace mehara::prapancha {
 
     private:
         void on_read(boost::beast::error_code ec, std::size_t) {
-            if (ec)
+            if (ec) {
                 return;
-
-            // 1. Translate Beast -> Prapancha Request
-            auto pra_req = translate_request(req_);
-            auto version = req_.version();
-
-            auto send = [self = this->shared_from_this(), version](http::Response &&pra_res) {
-                auto b_res = std::make_shared<boost::beast::http::response<boost::beast::http::string_body>>();
-
-                b_res->result(static_cast<boost::beast::http::status>(pra_res.status));
-                b_res->version(version);
-
-                for (const auto &h: pra_res.headers) {
-                    b_res->set(h.name, h.value);
-                }
-
-                b_res->body() = std::move(pra_res.body);
-                b_res->prepare_payload();
-
-                boost::beast::http::async_write(
-                        self->stream_, *b_res, [self, b_res](boost::beast::error_code ec, std::size_t) {
-                            if (!ec) {
-                                boost::system::error_code ignored_ec;
-                                self->stream_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_send,
+            }
+            if (req_.version() != 11) {
+                Loggers::App().log_info("प्रपञ्च — Prapancha: Request version {} not supported.", req_.version());
+                return;
+            }
+            auto request = http::from_beast(req_);
+            auto send = [self = this->shared_from_this()](http::Response &&response) {
+                auto beast_response = std::make_shared<boost::beast::http::response<boost::beast::http::string_body>>(
+                        http::to_beast(std::move(response)));
+                boost::beast::http::async_write(self->stream_, *beast_response,
+                                                [self, beast_response](boost::beast::error_code ec, std::size_t) {
+                                                    if (!ec) {
+                                                        boost::system::error_code ignored_ec;
+                                                        self->stream_.socket().shutdown(
+                                                                boost::asio::ip::tcp::socket::shutdown_send,
                                                                 ignored_ec);
-                            }
-                        });
+                                                    }
+                                                });
             };
-
-            Router::dispatch(std::move(pra_req), std::move(send));
+            Router::dispatch(std::move(request), std::move(send));
         }
     };
 
