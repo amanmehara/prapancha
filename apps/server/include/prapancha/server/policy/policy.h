@@ -6,16 +6,14 @@
 #include <string>
 #include <tuple>
 
-#include <boost/beast/http.hpp>
-
 #include <prapancha/env/env.h>
+#include <prapancha/server/http.h>
 #include <prapancha/server/uuid.h>
 
 namespace mehara::prapancha::policy {
 
-    template<typename Body>
     struct WithRequest {
-        boost::beast::http::request<Body> request;
+        http::Request request;
     };
 
     struct WithIdentity {
@@ -35,13 +33,13 @@ namespace mehara::prapancha::policy {
     using Refined = env::Augmented<T, NewTrait>;
 
     template<typename T>
-    using Result = std::expected<T, boost::beast::http::status>;
+    using Result = std::expected<T, http::Status>;
 
     template<typename T>
     concept IsAuthorizationAttestation = std::same_as<T, WithAdminAttestation> || std::same_as<T, WithStaffAttestation>;
 
     template<typename T>
-    concept HasRequest = requires(T v) { []<typename Body>(boost::beast::http::request<Body> &) {}(v.request); };
+    concept HasRequest = requires(T v) { [](http::Request &) {}(v.request); };
 
     template<typename T>
     concept HasRole = requires(T v) {
@@ -49,12 +47,11 @@ namespace mehara::prapancha::policy {
     };
 
     namespace internal {
-        template<typename Body>
-        Result<WithIdentity> authenticate(const boost::beast::http::request<Body> &request) {
+        inline Result<WithIdentity> authenticate(const http::Request &request) {
             if constexpr (true) {
                 return {WithIdentity{}};
             }
-            return std::unexpected(boost::beast::http::status::unauthorized);
+            return std::unexpected(http::Status::unauthorized);
         }
 
         template<IsAuthorizationAttestation Attestation>
@@ -62,17 +59,17 @@ namespace mehara::prapancha::policy {
             if (user_role == required_role) {
                 return {Attestation{}};
             }
-            return std::unexpected(boost::beast::http::status::forbidden);
+            return std::unexpected(http::Status::forbidden);
         }
     } // namespace internal
 
     template<typename Trait>
     struct PolicyFor;
 
-    template<typename Body>
-    struct PolicyFor<WithRequest<Body>> {
-        static Result<Context<WithRequest<Body>>> execute(auto &&req) {
-            return Context<WithRequest<Body>>{WithRequest<Body>{std::forward<decltype(req)>(req)}};
+    template<>
+    struct PolicyFor<WithRequest> {
+        static Result<Context<WithRequest>> execute(auto &&req) {
+            return Context<WithRequest>{WithRequest{std::forward<decltype(req)>(req)}};
         }
     };
 

@@ -15,70 +15,104 @@
 
 #include <prapancha/server/configuration.h>
 #include <prapancha/server/controller/controller.h>
+#include <prapancha/server/http.h>
 #include <prapancha/server/logger_registry.h>
 #include <prapancha/server/router.h>
 
 namespace mehara::prapancha {
 
-    using StringRequest = boost::beast::http::request<boost::beast::http::string_body>;
-    using StringResponse = boost::beast::http::response<boost::beast::http::string_body>;
-    using ResponseSender = std::function<void(StringResponse)>;
+    static http::Request
+    translate_request(boost::beast::http::request<boost::beast::http::vector_body<uint8_t>> &b_req) {
+        http::Request p_req;
+        p_req.target = std::string(b_req.target());
+        p_req.version = b_req.version();
 
-    struct AppHandlers {
-        static void root_bridge(StringRequest&& req, ResponseSender&& send) {
-            static auto instance = std::make_shared<RootController>();
-            instance->dispatch(std::move(req), std::move(send));
+        switch (b_req.method()) {
+            case boost::beast::http::verb::get:
+                p_req.method = http::Method::Get;
+                break;
+            case boost::beast::http::verb::post:
+                p_req.method = http::Method::Post;
+                break;
+            default:
+                p_req.method = http::Method::Unknown;
         }
 
-        static void status_handler(StringRequest&& req, ResponseSender&& send) {
-            StringResponse res{boost::beast::http::status::ok, req.version()};
-            res.set(boost::beast::http::field::content_type, "text/html; charset=utf-8");
-            res.body() = "प्रपञ्च — Prapancha: अनवरत। Alea iacta est!";
-            res.prepare_payload();
+        for (auto const &field: b_req) {
+            p_req.headers.push_back({std::string(field.name_string()), std::string(field.value())});
+        }
+
+        p_req.body = std::move(b_req.body());
+        return p_req;
+    }
+
+    using ResponseSender = std::function<void(http::Response)>;
+
+    struct AppHandlers {
+        static void root_bridge(http::Request &&req, ResponseSender &&send) {
+            static auto instance = std::make_shared<RootController>();
+            instance->dispatch(std::move(req), std::forward<ResponseSender>(send));
+        }
+
+        static void status_handler(http::Request &&req, ResponseSender &&send) {
+            http::Response res{http::Status::ok};
+            res.set_header("Content-Type", "text/html; charset=utf-8");
+            res.body = "प्रपञ्च — Prapancha: अनवरत। Alea iacta est!";
             send(std::move(res));
         }
     };
 
-    using AppRouter = StaticRouter<
-        Route<"/", Method::get, AppHandlers::root_bridge>,
-        Route<"/api/v1/status", Method::get, AppHandlers::status_handler>
-    >;
+    using AppRouter = StaticRouter<Route<"/", http::Method::Get, AppHandlers::root_bridge>,
+                                   Route<"/api/v1/status", http::Method::Get, AppHandlers::status_handler>>;
 
     template<typename Router>
     class Session : public std::enable_shared_from_this<Session<Router>> {
-        boost::asio::ip::tcp::socket socket_;
+        boost::beast::tcp_stream stream_;
         boost::beast::flat_buffer buffer_;
-        StringRequest req_;
+        boost::beast::http::request<boost::beast::http::vector_body<uint8_t>> req_;
 
     public:
-        explicit Session(boost::asio::ip::tcp::socket&& socket) : socket_(std::move(socket)) {}
-        void run() { do_read(); }
+        explicit Session(boost::asio::ip::tcp::socket &&socket) : stream_(std::move(socket)) {}
 
-    private:
-        void do_read() {
-            req_ = {};
-            boost::beast::http::async_read(socket_, buffer_, req_,
-                boost::asio::bind_executor(socket_.get_executor(),
-                    [self = this->shared_from_this()](auto ec, auto bytes) {
-                        self->on_read(ec, bytes);
-                    }));
+        void run() {
+            boost::beast::http::async_read(
+                    stream_, buffer_, req_,
+                    boost::beast::bind_front_handler(&Session::on_read, this->shared_from_this()));
         }
 
+    private:
         void on_read(boost::beast::error_code ec, std::size_t) {
-            if (ec) return;
+            if (ec)
+                return;
 
-            auto send = [self = this->shared_from_this()](StringResponse&& res) {
-                auto sp = std::make_shared<StringResponse>(std::move(res));
-                boost::beast::http::async_write(self->socket_, *sp,
-                    [self, sp](boost::beast::error_code ec, std::size_t) {
-                        if (!ec) {
-                            boost::system::error_code ignore_ec;
-                            self->socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_send, ignore_ec);
-                        }
-                    });
+            // 1. Translate Beast -> Prapancha Request
+            auto pra_req = translate_request(req_);
+            auto version = req_.version();
+
+            auto send = [self = this->shared_from_this(), version](http::Response &&pra_res) {
+                auto b_res = std::make_shared<boost::beast::http::response<boost::beast::http::string_body>>();
+
+                b_res->result(static_cast<boost::beast::http::status>(pra_res.status));
+                b_res->version(version);
+
+                for (const auto &h: pra_res.headers) {
+                    b_res->set(h.name, h.value);
+                }
+
+                b_res->body() = std::move(pra_res.body);
+                b_res->prepare_payload();
+
+                boost::beast::http::async_write(
+                        self->stream_, *b_res, [self, b_res](boost::beast::error_code ec, std::size_t) {
+                            if (!ec) {
+                                boost::system::error_code ignored_ec;
+                                self->stream_.socket().shutdown(boost::asio::ip::tcp::socket::shutdown_send,
+                                                                ignored_ec);
+                            }
+                        });
             };
 
-            Router::dispatch(std::move(req_), std::move(send));
+            Router::dispatch(std::move(pra_req), std::move(send));
         }
     };
 
@@ -102,12 +136,12 @@ namespace mehara::prapancha {
     private:
         void do_accept() {
             acceptor_.async_accept(boost::asio::make_strand(ioc_),
-                [self = this->shared_from_this()](auto ec, boost::asio::ip::tcp::socket socket) {
-                    if (!ec) {
-                        std::make_shared<Session<Router>>(std::move(socket))->run();
-                    }
-                    self->do_accept();
-                });
+                                   [self = this->shared_from_this()](auto ec, boost::asio::ip::tcp::socket socket) {
+                                       if (!ec) {
+                                           std::make_shared<Session<Router>>(std::move(socket))->run();
+                                       }
+                                       self->do_accept();
+                                   });
         }
     };
 
@@ -122,10 +156,8 @@ namespace mehara::prapancha {
 
         boost::asio::io_context io_context{thread_count};
 
-        auto endpoint = boost::asio::ip::tcp::endpoint{
-            boost::asio::ip::make_address(config.network.host),
-            static_cast<unsigned short>(config.network.port)
-        };
+        auto endpoint = boost::asio::ip::tcp::endpoint{boost::asio::ip::make_address(config.network.host),
+                                                       static_cast<unsigned short>(config.network.port)};
 
         std::make_shared<Listener<AppRouter>>(io_context, endpoint)->run();
 
@@ -134,7 +166,8 @@ namespace mehara::prapancha {
         boost::asio::signal_set signals(io_context, SIGINT, SIGTERM);
 
         signals.async_wait([&](const boost::system::error_code &ec, int signal_number) {
-            if (ec == boost::asio::error::operation_aborted) return;
+            if (ec == boost::asio::error::operation_aborted)
+                return;
             Loggers::App().log_info("प्रपञ्च — Prapancha: Signal {} received.", signal_number);
             io_context.stop();
             static std::atomic<bool> signaled{false};
@@ -143,8 +176,8 @@ namespace mehara::prapancha {
             }
         });
 
-        Loggers::App().log_info("प्रपञ्च — Prapancha: Starting on http://{}:{} ({} executors).",
-            config.network.host, config.network.port, thread_count);
+        Loggers::App().log_info("प्रपञ्च — Prapancha: Starting on http://{}:{} ({} executors).", config.network.host,
+                                config.network.port, thread_count);
 
         std::vector<std::thread> executors;
         executors.reserve(thread_count);
@@ -156,7 +189,8 @@ namespace mehara::prapancha {
         Loggers::App().log_info("प्रपञ्च — Prapancha: Signal {} acknowledged.", signal_number);
 
         for (auto &thread: executors) {
-            if (thread.joinable()) thread.join();
+            if (thread.joinable())
+                thread.join();
         }
 
         Loggers::App().log_info("प्रपञ्च — Prapancha: Stopping.");

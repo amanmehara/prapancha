@@ -9,14 +9,9 @@
 #include <cstddef>
 #include <string_view>
 
-#include <boost/beast/http.hpp>
-
-#include <prapancha/server/configuration.h>
-#include <prapancha/server/controller/controller.h>
+#include <prapancha/server/http.h>
 
 namespace mehara::prapancha {
-
-    using Method = boost::beast::http::verb;
 
     template<std::size_t N>
     struct StaticPath {
@@ -34,10 +29,10 @@ namespace mehara::prapancha {
     template<std::size_t N>
     StaticPath(const char (&)[N]) -> StaticPath<N>;
 
-    template<StaticPath Path, Method Verb, auto HandlerFunc>
+    template<StaticPath Path, http::Method Verb, auto HandlerFunc>
     struct Route {
         static constexpr std::string_view path = Path.view();
-        static constexpr Method method = Verb;
+        static constexpr http::Method method = Verb;
 
         template<typename Req, typename Send>
         static void execute(Req&& req, Send&& send) {
@@ -49,12 +44,12 @@ namespace mehara::prapancha {
     struct StaticRouter {
         template<typename Req, typename Send>
         static void dispatch(Req&& req, Send&& send) {
-            std::string_view target = req.target();
+            std::string_view target = req.target;
             if (auto pos = target.find('?'); pos != std::string_view::npos) {
                 target = target.substr(0, pos);
             }
 
-            const Method req_method = req.method();
+            const http::Method req_method = req.method;
 
             bool found = ((
                 (target == Routes::path && req_method == Routes::method) ?
@@ -70,12 +65,9 @@ namespace mehara::prapancha {
     private:
         template<typename Req, typename Send>
         static void send_404(Req&& req, Send&& send) {
-            boost::beast::http::response<boost::beast::http::string_body> res{
-                boost::beast::http::status::not_found, req.version()};
-            res.set(boost::beast::http::field::server, "Prapancha");
-            res.set(boost::beast::http::field::content_type, "text/plain");
-            res.body() = "404 Not Found";
-            res.prepare_payload();
+            http::Response res{http::Status::not_found};
+            res.set_header("Content-Type", "text/html; charset=utf-8");
+            res.body = "404 Not Found!";
             std::forward<Send>(send)(std::move(res));
         }
     };
