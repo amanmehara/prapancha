@@ -9,6 +9,7 @@
 #include <cstddef>
 #include <string_view>
 
+#include <prapancha/server/controller/controller_provider.h>
 #include <prapancha/server/http.h>
 
 namespace mehara::prapancha {
@@ -17,13 +18,9 @@ namespace mehara::prapancha {
     struct StaticPath {
         char data[N]{};
 
-        constexpr StaticPath(const char (&str)[N]) {
-            std::copy_n(str, N, data);
-        }
+        constexpr StaticPath(const char (&str)[N]) { std::copy_n(str, N, data); }
 
-        [[nodiscard]] constexpr std::string_view view() const noexcept {
-            return {data, N > 0 ? N - 1 : 0};
-        }
+        [[nodiscard]] constexpr std::string_view view() const noexcept { return {data, N > 0 ? N - 1 : 0}; }
     };
 
     template<std::size_t N>
@@ -35,7 +32,7 @@ namespace mehara::prapancha {
         static constexpr http::Method method = Verb;
 
         template<typename Req, typename Send>
-        static void execute(Req&& req, Send&& send) {
+        static void execute(Req &&req, Send &&send) {
             HandlerFunc(std::forward<Req>(req), std::forward<Send>(send));
         }
     };
@@ -43,7 +40,7 @@ namespace mehara::prapancha {
     template<typename... Routes>
     struct StaticRouter {
         template<typename Req, typename Send>
-        static void dispatch(Req&& req, Send&& send) {
+        static void dispatch(Req &&req, Send &&send) {
             std::string_view target = req.target;
             if (auto pos = target.find('?'); pos != std::string_view::npos) {
                 target = target.substr(0, pos);
@@ -51,24 +48,14 @@ namespace mehara::prapancha {
 
             const http::Method req_method = req.method;
 
-            bool found = ((
-                (target == Routes::path && req_method == Routes::method) ?
-                (Routes::execute(std::forward<Req>(req), std::forward<Send>(send)), true) :
-                false
-            ) || ...);
+            bool found = (((target == Routes::path && req_method == Routes::method)
+                                   ? (Routes::execute(std::forward<Req>(req), std::forward<Send>(send)), true)
+                                   : false) ||
+                          ...);
 
             if (!found) {
-                send_404(std::forward<Req>(req), std::forward<Send>(send));
+                ControllerProvider::void_controller(std::forward<Req>(req), std::forward<Send>(send));
             }
-        }
-
-    private:
-        template<typename Req, typename Send>
-        static void send_404(Req&& req, Send&& send) {
-            http::Response res{http::Status::not_found};
-            res.set_header("Content-Type", "text/html; charset=utf-8");
-            res.body = "404 Not Found!";
-            std::forward<Send>(send)(std::move(res));
         }
     };
 

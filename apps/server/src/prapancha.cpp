@@ -15,31 +15,15 @@
 
 #include <prapancha/server/beast_adapter.h>
 #include <prapancha/server/configuration.h>
-#include <prapancha/server/controller/controller.h>
+#include <prapancha/server/controller/controller_provider.h>
 #include <prapancha/server/http.h>
 #include <prapancha/server/logger_registry.h>
 #include <prapancha/server/router.h>
 
 namespace mehara::prapancha {
 
-    using ResponseSender = std::function<void(http::Response)>;
-
-    struct AppHandlers {
-        static void root_bridge(http::Request &&req, ResponseSender &&send) {
-            static auto instance = std::make_shared<RootController>();
-            instance->dispatch(std::move(req), std::forward<ResponseSender>(send));
-        }
-
-        static void status_handler(http::Request &&req, ResponseSender &&send) {
-            http::Response res{http::Status::ok};
-            res.set_header("Content-Type", "text/html; charset=utf-8");
-            res.body = "प्रपञ्च — Prapancha: अनवरत। Alea iacta est!";
-            send(std::move(res));
-        }
-    };
-
-    using AppRouter = StaticRouter<Route<"/", http::Method::Get, AppHandlers::root_bridge>,
-                                   Route<"/api/v1/status", http::Method::Get, AppHandlers::status_handler>>;
+    using AppRouter = StaticRouter<Route<"/", http::Method::Get, ControllerProvider::root_controller>,
+                                   Route<"/api/v1/status", http::Method::Get, ControllerProvider::status_controller>>;
 
     template<typename Router>
     class Session : public std::enable_shared_from_this<Session<Router>> {
