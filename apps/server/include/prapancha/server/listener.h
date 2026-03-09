@@ -34,13 +34,26 @@ namespace mehara::prapancha {
 
     private:
         void do_accept() {
-            acceptor_.async_accept(boost::asio::make_strand(ioc_),
-                                   [self = this->shared_from_this()](auto ec, boost::asio::ip::tcp::socket socket) {
-                                       if (!ec) {
-                                           std::make_shared<Session<Router>>(std::move(socket))->run();
-                                       }
-                                       self->do_accept();
-                                   });
+            acceptor_.async_accept(boost::asio::make_strand(ioc_), [self = this->shared_from_this()](
+                                                                           auto ec,
+                                                                           boost::asio::ip::tcp::socket socket) {
+                if (!ec) {
+                    boost::beast::error_code endpoint_ec;
+                    const auto remote = socket.remote_endpoint(endpoint_ec);
+                    if (!endpoint_ec) {
+                        Loggers::App().log_info("Connection from {}:{}", remote.address().to_string(), remote.port());
+                    } else {
+                        Loggers::App().log_warn("प्रपञ्च — Prapancha: Connection accepted but endpoint unreachable: {}",
+                                                endpoint_ec.message());
+                    }
+                    std::make_shared<Session<Router>>(std::move(socket))->run();
+                } else if (ec != boost::asio::error::operation_aborted) {
+                    Loggers::App().log_error("प्रपञ्च — Prapancha: Accept failed [{}]: {}", ec.value(), ec.message());
+                }
+                if (ec != boost::asio::error::operation_aborted) {
+                    self->do_accept();
+                }
+            });
         }
     };
 
