@@ -13,88 +13,17 @@
 #include <boost/beast/core.hpp>
 #include <boost/beast/http.hpp>
 
-#include <prapancha/server/beast_adapter.h>
 #include <prapancha/server/configuration.h>
 #include <prapancha/server/controller/controller_provider.h>
 #include <prapancha/server/http.h>
+#include <prapancha/server/listener.h>
 #include <prapancha/server/logger_registry.h>
 #include <prapancha/server/router.h>
 
 namespace mehara::prapancha {
 
-    using AppRouter = StaticRouter<Route<"/", http::Method::Get, ControllerProvider::root_controller>,
-                                   Route<"/api/v1/status", http::Method::Get, ControllerProvider::status_controller>>;
-
-    template<typename Router>
-    class Session : public std::enable_shared_from_this<Session<Router>> {
-        boost::beast::tcp_stream stream_;
-        boost::beast::flat_buffer buffer_;
-        boost::beast::http::request<boost::beast::http::vector_body<uint8_t>> req_;
-
-    public:
-        explicit Session(boost::asio::ip::tcp::socket &&socket) : stream_(std::move(socket)) {}
-
-        void run() {
-            boost::beast::http::async_read(
-                    stream_, buffer_, req_,
-                    boost::beast::bind_front_handler(&Session::on_read, this->shared_from_this()));
-        }
-
-    private:
-        void on_read(boost::beast::error_code ec, std::size_t) {
-            if (ec) {
-                return;
-            }
-            if (req_.version() != 11) {
-                Loggers::App().log_info("प्रपञ्च — Prapancha: Request version {} not supported.", req_.version());
-                return;
-            }
-            auto request = http::from_beast(req_);
-            auto send = [self = this->shared_from_this()](http::Response &&response) {
-                auto beast_response = std::make_shared<boost::beast::http::response<boost::beast::http::string_body>>(
-                        http::to_beast(std::move(response)));
-                boost::beast::http::async_write(self->stream_, *beast_response,
-                                                [self, beast_response](boost::beast::error_code ec, std::size_t) {
-                                                    if (!ec) {
-                                                        boost::system::error_code ignored_ec;
-                                                        self->stream_.socket().shutdown(
-                                                                boost::asio::ip::tcp::socket::shutdown_send,
-                                                                ignored_ec);
-                                                    }
-                                                });
-            };
-            Router::dispatch(std::move(request), std::move(send));
-        }
-    };
-
-    template<typename Router>
-    class Listener : public std::enable_shared_from_this<Listener<Router>> {
-        boost::asio::io_context &ioc_;
-        boost::asio::ip::tcp::acceptor acceptor_;
-
-    public:
-        Listener(boost::asio::io_context &ioc, const boost::asio::ip::tcp::endpoint &endpoint) :
-            ioc_(ioc), acceptor_(boost::asio::make_strand(ioc)) {
-            boost::beast::error_code ec;
-            acceptor_.open(endpoint.protocol(), ec);
-            acceptor_.set_option(boost::asio::socket_base::reuse_address(true), ec);
-            acceptor_.bind(endpoint, ec);
-            acceptor_.listen(boost::asio::socket_base::max_listen_connections, ec);
-        }
-
-        void run() { do_accept(); }
-
-    private:
-        void do_accept() {
-            acceptor_.async_accept(boost::asio::make_strand(ioc_),
-                                   [self = this->shared_from_this()](auto ec, boost::asio::ip::tcp::socket socket) {
-                                       if (!ec) {
-                                           std::make_shared<Session<Router>>(std::move(socket))->run();
-                                       }
-                                       self->do_accept();
-                                   });
-        }
-    };
+    using AppRouter = Router<Route<"/", http::Method::Get, ControllerProvider::root_controller>,
+                             Route<"/api/v1/status", http::Method::Get, ControllerProvider::status_controller>>;
 
     void run(int argc, char *argv[]) {
         configuration::initialize(configuration::from_cli(argc, argv));

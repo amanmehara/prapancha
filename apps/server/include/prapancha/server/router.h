@@ -15,30 +15,34 @@
 namespace mehara::prapancha {
 
     template<std::size_t N>
-    struct StaticPath {
+    struct Path {
         char data[N]{};
 
-        constexpr StaticPath(const char (&str)[N]) { std::copy_n(str, N, data); }
+        constexpr Path(const char (&str)[N]) { std::copy_n(str, N, data); }
 
         [[nodiscard]] constexpr std::string_view view() const noexcept { return {data, N > 0 ? N - 1 : 0}; }
     };
 
     template<std::size_t N>
-    StaticPath(const char (&)[N]) -> StaticPath<N>;
+    Path(const char (&)[N]) -> Path<N>;
 
-    template<StaticPath Path, http::Method Verb, auto HandlerFunc>
+    template<Path Path, http::Method Verb, auto Handler>
+        requires requires(http::Request &request) { Handler(std::move(request), [](http::Response &&) {}); }
     struct Route {
         static constexpr std::string_view path = Path.view();
         static constexpr http::Method method = Verb;
 
-        template<typename Req, typename Send>
-        static void execute(Req &&req, Send &&send) {
-            HandlerFunc(std::forward<Req>(req), std::forward<Send>(send));
+        template<typename Request, typename Responder>
+            requires std::derived_from<std::decay_t<Request>, http::Request> &&
+                     std::invocable<Responder, http::Response &&> &&
+                     std::same_as<std::invoke_result_t<Responder, http::Response &&>, void>
+        static void execute(Request &&request, Responder &&responder) {
+            Handler(std::forward<Request>(request), std::forward<Responder>(responder));
         }
     };
 
     template<typename... Routes>
-    struct StaticRouter {
+    struct Router {
         template<typename Req, typename Send>
         static void dispatch(Req &&req, Send &&send) {
             std::string_view target = req.target;
@@ -46,13 +50,10 @@ namespace mehara::prapancha {
                 target = target.substr(0, pos);
             }
 
-            const http::Method req_method = req.method;
-
-            bool found = (((target == Routes::path && req_method == Routes::method)
-                                   ? (Routes::execute(std::forward<Req>(req), std::forward<Send>(send)), true)
-                                   : false) ||
-                          ...);
-
+            const http::Method method = req.method;
+            const bool found = (((target == Routes::path && method == Routes::method) &&
+                                 (Routes::execute(std::forward<Req>(req), std::forward<Send>(send)), true)) ||
+                                ...);
             if (!found) {
                 ControllerProvider::void_controller(std::forward<Req>(req), std::forward<Send>(send));
             }

@@ -17,6 +17,9 @@ namespace mehara::prapancha::env {
     template<typename Capability, typename... Capabilities>
     struct is_unique : std::bool_constant<(size_t(std::is_same_v<Capability, Capabilities>) + ...) == 1> {};
 
+    template<typename Capability, typename E>
+    concept has_capability = std::is_base_of_v<Capability, std::remove_cvref_t<E>>;
+
     template<typename... Capabilities>
     struct Env : Capabilities... {
         static_assert((is_unique<Capabilities, Capabilities...>::value && ...),
