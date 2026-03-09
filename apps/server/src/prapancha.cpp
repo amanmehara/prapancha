@@ -14,37 +14,27 @@
 #include <boost/beast/http.hpp>
 
 #include <prapancha/server/configuration.h>
-#include <prapancha/server/controller/controller_provider.h>
 #include <prapancha/server/http.h>
 #include <prapancha/server/listener.h>
 #include <prapancha/server/logger_registry.h>
-#include <prapancha/server/router.h>
+#include <prapancha/server/routes.h>
 
 namespace mehara::prapancha {
-
-    using AppRouter = Router<Route<"/", http::Method::Get, ControllerProvider::root_controller>,
-                             Route<"/api/v1/status", http::Method::Get, ControllerProvider::status_controller>>;
 
     void run(int argc, char *argv[]) {
         configuration::initialize(configuration::from_cli(argc, argv));
         const auto &config = *configuration::Active;
-
         int thread_count = config.network.thread_count;
         if (thread_count == 0) {
             thread_count = std::max<int>(1, std::thread::hardware_concurrency());
         }
-
         boost::asio::io_context io_context{thread_count};
-
         auto endpoint = boost::asio::ip::tcp::endpoint{boost::asio::ip::make_address(config.network.host),
                                                        static_cast<unsigned short>(config.network.port)};
-
         std::make_shared<Listener<AppRouter>>(io_context, endpoint)->run();
-
         std::promise<int> shutdown_promised;
         auto shutdown_future = shutdown_promised.get_future();
         boost::asio::signal_set signals(io_context, SIGINT, SIGTERM);
-
         signals.async_wait([&](const boost::system::error_code &ec, int signal_number) {
             if (ec == boost::asio::error::operation_aborted)
                 return;
@@ -55,24 +45,19 @@ namespace mehara::prapancha {
                 shutdown_promised.set_value(signal_number);
             }
         });
-
         Loggers::App().log_info("प्रपञ्च — Prapancha: Starting on http://{}:{} ({} executors).", config.network.host,
                                 config.network.port, thread_count);
-
         std::vector<std::thread> executors;
         executors.reserve(thread_count);
         for (auto i = 0; i < thread_count; ++i) {
             executors.emplace_back([&io_context] { io_context.run(); });
         }
-
         int signal_number = shutdown_future.get();
         Loggers::App().log_info("प्रपञ्च — Prapancha: Signal {} acknowledged.", signal_number);
-
         for (auto &thread: executors) {
             if (thread.joinable())
                 thread.join();
         }
-
         Loggers::App().log_info("प्रपञ्च — Prapancha: Stopping.");
     }
 

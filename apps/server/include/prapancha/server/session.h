@@ -33,9 +33,9 @@ namespace mehara::prapancha {
 
     private:
         void on_read(boost::beast::error_code ec, std::size_t) {
-            if (ec)
+            if (ec) {
                 return;
-
+            }
             if (req_.version() != 11) {
                 Loggers::App().log_info("प्रपञ्च — Prapancha: Request version {} not supported.", req_.version());
                 return;
@@ -44,7 +44,6 @@ namespace mehara::prapancha {
             auto send = [self = this->shared_from_this()](http::Response &&response) {
                 auto beast_response = std::make_shared<boost::beast::http::response<boost::beast::http::string_body>>(
                         http::to_beast(std::move(response)));
-
                 boost::beast::http::async_write(self->stream_, *beast_response,
                                                 [self, beast_response](boost::beast::error_code ec, std::size_t) {
                                                     if (!ec) {
@@ -55,7 +54,6 @@ namespace mehara::prapancha {
                                                     }
                                                 });
             };
-
             Router::dispatch(std::move(request), std::move(send));
         }
     };
