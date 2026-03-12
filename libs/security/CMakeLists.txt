@@ -1,5 +1,6 @@
 add_library(prapancha_security STATIC
         src/hasher.cpp
+        src/signer.cpp
 )
 
 add_library(prapancha::security ALIAS prapancha_security)
