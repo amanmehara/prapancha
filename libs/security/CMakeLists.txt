@@ -1,4 +1,5 @@
 add_library(prapancha_security STATIC
+        src/crypter.cpp
         src/hasher.cpp
         src/signer.cpp
 )
