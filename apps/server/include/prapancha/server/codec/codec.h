@@ -110,36 +110,34 @@ namespace mehara::prapancha {
     };
 
     template<>
-    struct JsonCodec<security::PasswordBinding> {
+    struct JsonCodec<security::Argon2idBinding> {
         using EncodedType = std::string;
 
-        static EncodedType encode(const security::PasswordBinding &pb) {
+        static EncodedType encode(const security::Argon2idBinding &binding) {
             boost::json::object obj;
-            obj["v"] = pb.version;
-            obj["m"] = pb.m;
-            obj["t"] = pb.t;
-            obj["p"] = pb.p;
-            obj["salt"] = HexCodec<std::vector<std::uint8_t>>::encode(pb.salt);
-            obj["hash"] = HexCodec<std::vector<std::uint8_t>>::encode(pb.hash);
+            obj["v"] = binding.version;
+            obj["m"] = binding.m;
+            obj["t"] = binding.t;
+            obj["p"] = binding.p;
+            obj["salt"] = HexCodec<std::vector<std::uint8_t>>::encode(binding.salt);
+            obj["hash"] = HexCodec<std::vector<std::uint8_t>>::encode(binding.hash);
             return boost::json::serialize(obj);
         }
 
-        static std::optional<security::PasswordBinding> decode(const EncodedType &data) {
+        static std::optional<security::Argon2idBinding> decode(const EncodedType &data) {
             try {
                 auto obj = boost::json::parse(data).as_object();
-                auto salt = HexCodec<std::vector<std::uint8_t>>::decode(
-                        static_cast<std::string>(obj.at("salt").as_string()));
-                auto hash = HexCodec<std::vector<std::uint8_t>>::decode(
-                        static_cast<std::string>(obj.at("hash").as_string()));
+                auto salt = HexCodec<std::vector<uint8_t>>::decode(std::string(obj.at("salt").as_string()));
+                auto hash = HexCodec<std::vector<uint8_t>>::decode(std::string(obj.at("hash").as_string()));
                 if (!salt || !hash) {
                     return std::nullopt;
                 }
-                return security::PasswordBinding{static_cast<std::uint32_t>(obj.at("v").as_int64()),
+                return security::Argon2idBinding{static_cast<std::uint32_t>(obj.at("v").as_int64()),
                                                  static_cast<std::uint32_t>(obj.at("m").as_int64()),
                                                  static_cast<std::uint32_t>(obj.at("t").as_int64()),
                                                  static_cast<std::uint32_t>(obj.at("p").as_int64()),
-                                                 std::move(salt.value()),
-                                                 std::move(hash.value())};
+                                                 std::move(*salt),
+                                                 std::move(*hash)};
             } catch (...) {
                 return std::nullopt;
             }
@@ -147,10 +145,34 @@ namespace mehara::prapancha {
     };
 
     template<>
-    struct JsonCodec<UserIdentity> {
+    struct JsonCodec<security::Sha256Binding> {
         using EncodedType = std::string;
 
-        static EncodedType encode(const UserIdentity &model) {
+        static EncodedType encode(const security::Sha256Binding &binding) {
+            boost::json::object obj;
+            obj["hash"] = HexCodec<std::vector<uint8_t>>::encode(binding.hash);
+            return boost::json::serialize(obj);
+        }
+
+        static std::optional<security::Sha256Binding> decode(const EncodedType &data) {
+            try {
+                auto obj = boost::json::parse(data).as_object();
+                auto hash = HexCodec<std::vector<uint8_t>>::decode(std::string(obj.at("hash").as_string()));
+                if (!hash) {
+                    return std::nullopt;
+                }
+                return security::Sha256Binding{std::move(*hash)};
+            } catch (...) {
+                return std::nullopt;
+            }
+        }
+    };
+
+    template<typename PasswordBinding>
+    struct JsonCodec<UserIdentity<PasswordBinding>> {
+        using EncodedType = std::string;
+
+        static EncodedType encode(const UserIdentity<PasswordBinding> &model) {
             boost::json::object j;
             j["id"] = model.id.to_hex();
             j["version"] = model.version;
@@ -159,27 +181,26 @@ namespace mehara::prapancha {
             j["username"] = model.state.username;
             j["is_admin"] = model.state.is_admin;
             j["password_binding"] =
-                    boost::json::parse(JsonCodec<security::PasswordBinding>::encode(model.state.password_binding));
+                    boost::json::parse(JsonCodec<PasswordBinding>::encode(model.state.password_binding));
             return boost::json::serialize(j);
         }
 
-        static std::optional<UserIdentity> decode(const EncodedType &data) {
+        static std::optional<UserIdentity<PasswordBinding>> decode(const EncodedType &data) {
             try {
                 auto j = boost::json::parse(data).as_object();
                 auto pb_raw = boost::json::serialize(j.at("password_binding"));
-                auto pb_opt = JsonCodec<security::PasswordBinding>::decode(pb_raw);
+                auto pb_opt = JsonCodec<PasswordBinding>::decode(pb_raw);
                 if (!pb_opt || !j.contains("username")) {
                     return std::nullopt;
                 }
-                UserIdentity::State state{std::string(j.at("username").as_string()), std::move(*pb_opt),
-                                          j.at("is_admin").as_bool()};
-
+                typename UserIdentity<PasswordBinding>::State state{std::string(j.at("username").as_string()),
+                                                                    std::move(*pb_opt), j.at("is_admin").as_bool()};
                 if (j.contains("id") && j.contains("version") && j.contains("created_at")) {
-                    return UserIdentity::rehydrate(
+                    return UserIdentity<PasswordBinding>::rehydrate(
                             UUID::from_hex(std::string(j.at("id").as_string())).value(), j.at("version").as_uint64(),
                             Timestamp{std::chrono::milliseconds{j.at("created_at").as_uint64()}}, std::move(state));
                 }
-                return UserIdentity::create(std::move(state));
+                return UserIdentity<PasswordBinding>::create(std::move(state));
             } catch (...) {
                 return std::nullopt;
             }

@@ -19,11 +19,10 @@ namespace mehara::prapancha {
 
     using Timestamp = std::chrono::sys_time<std::chrono::milliseconds>;
 
-    // The tag type
     struct increment_version_t {
         explicit increment_version_t() = default;
     };
-    // The tag instance used for dispatch
+
     inline constexpr increment_version_t increment_version{};
 
     struct BaseModel {
@@ -48,14 +47,15 @@ namespace mehara::prapancha {
 
     template<typename M>
     concept Model = std::derived_from<M, BaseModel> && requires {
-        { M::ModelName } -> std::convertible_to<std::string_view>;
+        { M::model_name } -> std::convertible_to<std::string_view>;
         typename M::State;
     };
 
+    template<typename PasswordBinding>
     struct UserIdentity : BaseModel {
-        static constexpr std::string_view ModelName = "user_identity";
+        static constexpr std::string_view model_name = "user_identity";
 
-        struct Attestation {
+        struct [[nodiscard]] Attestation {
             [[nodiscard]] const UUID &id() const { return _id; }
 
         private:
@@ -66,7 +66,7 @@ namespace mehara::prapancha {
 
         struct State {
             std::string username;
-            security::PasswordBinding password_binding;
+            PasswordBinding password_binding;
             bool is_admin;
 
             bool operator==(const State &) const = default;
@@ -87,9 +87,7 @@ namespace mehara::prapancha {
             return UserIdentity(id, v, ts, std::move(s));
         }
 
-        [[nodiscard]] Attestation certify() const {
-            return Attestation{this->id};
-        }
+        [[nodiscard]] Attestation certify() const { return Attestation{this->id}; }
 
     private:
         explicit UserIdentity(const UUID id, State s) : BaseModel(id), state(std::move(s)) {}
@@ -102,7 +100,7 @@ namespace mehara::prapancha {
     };
 
     struct Author : BaseModel {
-        static constexpr std::string_view ModelName = "author";
+        static constexpr std::string_view model_name = "author";
 
         struct State {
             std::string display_name;
@@ -113,7 +111,8 @@ namespace mehara::prapancha {
 
         const State state;
 
-        static Author create(const UserIdentity::Attestation attestation, State s) {
+        template<typename PasswordBinding>
+        static Author create(const UserIdentity<PasswordBinding>::Attestation attestation, State s) {
             return Author(attestation.id(), std::move(s));
         }
 
@@ -138,7 +137,7 @@ namespace mehara::prapancha {
     };
 
     struct Post : BaseModel {
-        static constexpr std::string_view ModelName = "post";
+        static constexpr std::string_view model_name = "post";
 
         struct State {
             UUID author_id;
@@ -172,9 +171,6 @@ namespace mehara::prapancha {
             BaseModel(id, v, ts), state(std::move(s)) {}
     };
 
-    static_assert(Model<Author>, "Author does not satisfy the Model concept.");
-    static_assert(Model<Post>, "Post does not satisfy the Model concept.");
-    static_assert(Model<UserIdentity>, "UserIdentity does not satisfy the Model concept.");
 
 } // namespace mehara::prapancha
 
