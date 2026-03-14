@@ -43,12 +43,15 @@ namespace mehara::prapancha::http {
     }
 
     enum class Status {
-        ok = 200,
-        bad_request = 400,
-        unauthorized = 401,
-        forbidden = 403,
-        not_found = 404,
-        internal_server_error = 500
+        Ok = 200,
+        Created = 201,
+        BadRequest = 400,
+        Unauthorized = 401,
+        Forbidden = 403,
+        NotFound = 404,
+        Conflict = 409,
+        InternalServerError = 500,
+        NotImplemented = 501
     };
 
     struct Header {
@@ -78,7 +81,7 @@ namespace mehara::prapancha::http {
     };
 
     struct Response {
-        Status status = Status::ok;
+        Status status = Status::Ok;
         std::vector<Header> headers;
         std::string body; // Using string for text-based responses
 

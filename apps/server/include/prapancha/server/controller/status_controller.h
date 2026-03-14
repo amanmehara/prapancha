@@ -15,7 +15,7 @@ namespace mehara::prapancha {
         using RequiredTraits = std::tuple<policy::WithRequest>;
 
         void handle(auto &&ctx, auto &&sender) {
-            http::Response res{http::Status::ok};
+            http::Response res{http::Status::Ok};
             res.set_header("Content-Type", "text/html; charset=utf-8");
             res.body = "प्रपञ्च — Prapancha: अनवरत। Alea iacta est!";
             sender(std::move(res));

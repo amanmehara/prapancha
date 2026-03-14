@@ -25,7 +25,7 @@ namespace mehara::prapancha {
     };
 
     template<typename M, typename C>
-        requires codec::Codec<C, M> && std::same_as<typename C::EncodedType, std::string>
+        requires codec::Codec<C, M> && std::convertible_to<typename C::encoded_type, std::string>
     class FilePersistence {
     public:
         explicit FilePersistence(std::filesystem::path path) : directory_(std::move(path)) {
@@ -36,7 +36,7 @@ namespace mehara::prapancha {
 
         void save(const M &model) {
             const std::string data = C::encode(model);
-            std::ofstream file(get_path(model.id), std::ios::binary | std::ios::trunc);
+            std::ofstream file(get_path(model.id()), std::ios::binary | std::ios::trunc);
             file.write(data.data(), static_cast<std::streamsize>(data.size()));
         }
 

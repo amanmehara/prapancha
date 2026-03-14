@@ -10,8 +10,13 @@
 
 namespace mehara::prapancha {
 
-    using AppRouter = Router<Route<"/", http::Method::Get, ControllerProvider::root_controller>,
-                             Route<"/api/v1/status", http::Method::Get, ControllerProvider::status_controller>>;
+    using AppRouter = Router<
+            Route<"/", http::Method::Get, ControllerProvider::root_controller>,
+            Route<"/api/v1/status", http::Method::Get, ControllerProvider::status_controller>,
+            Route<"/api/v1/register", http::Method::Post, ControllerProvider::Identity::registration_controller>,
+            Route<"/api/v1/deregister", http::Method::Delete, ControllerProvider::Identity::deregistration_controller>,
+            Route<"/api/v1/login", http::Method::Post, ControllerProvider::Identity::login_controller>,
+            Route<"/api/v1/logout", http::Method::Post, ControllerProvider::Identity::logout_controller>>;
 
 } // namespace mehara::prapancha
 

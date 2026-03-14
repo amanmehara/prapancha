@@ -28,6 +28,10 @@ namespace mehara::prapancha {
         if (thread_count == 0) {
             thread_count = std::max<int>(1, std::thread::hardware_concurrency());
         }
+        const std::string root_path = std::filesystem::absolute(config.persistence.root_path).string();
+        auto user_identity_path = std::filesystem::absolute(
+                root_path + "/" + std::string(UserIdentity<security::Argon2idBinding>::model_name));
+        PersistenceRegistry::initialize_user_identity<security::Argon2idBinding>(user_identity_path);
         boost::asio::io_context io_context{thread_count};
         auto endpoint = boost::asio::ip::tcp::endpoint{boost::asio::ip::make_address(config.network.host),
                                                        static_cast<unsigned short>(config.network.port)};

@@ -51,7 +51,7 @@ namespace mehara::prapancha::policy {
             if constexpr (true) {
                 return {WithIdentity{}};
             }
-            return std::unexpected(http::Status::unauthorized);
+            return std::unexpected(http::Status::Unauthorized);
         }
 
         template<IsAuthorizationAttestation Attestation>
@@ -59,7 +59,7 @@ namespace mehara::prapancha::policy {
             if (user_role == required_role) {
                 return {Attestation{}};
             }
-            return std::unexpected(http::Status::forbidden);
+            return std::unexpected(http::Status::Forbidden);
         }
     } // namespace internal
 
