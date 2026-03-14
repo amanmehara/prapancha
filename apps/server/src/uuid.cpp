@@ -9,15 +9,12 @@
 
 namespace mehara::prapancha {
 
-    // Standard lowercase hex map for UUID canonical representation
-    static constexpr char HEX_MAP[] = "0123456789abcdef";
+    UUID::UUID() : data_{} {}
 
-    UUID::UUID() : _data{} {}
-
-    UUID::UUID(const raw_t &data) : _data(data) {}
+    UUID::UUID(const Bytes &data) : data_(data) {}
 
     UUID UUID::generate() {
-        raw_t data;
+        Bytes data;
 
         // Get current Unix timestamp in milliseconds (48 bits)
         const auto now = std::chrono::system_clock::now();
@@ -50,53 +47,16 @@ namespace mehara::prapancha {
         return UUID(data);
     }
 
-    std::optional<UUID> UUID::from_hex(const std::string_view hex) {
-        if (hex.length() != 32)
-            return std::nullopt;
-
-        auto char_to_int = [](const char c) -> int {
-            if (c >= '0' && c <= '9') {
-                return c - '0';
-            }
-            if (c >= 'a' && c <= 'f') {
-                return c - 'a' + 10;
-            }
-            if (c >= 'A' && c <= 'F') {
-                return c - 'A' + 10;
-            }
-            return -1;
-        };
-
-        raw_t bytes;
-        for (size_t i = 0; i < 16; ++i) {
-            const int high = char_to_int(hex[i * 2]);
-            const int low = char_to_int(hex[i * 2 + 1]);
-
-            if (high == -1 || low == -1)
-                return std::nullopt;
-            bytes[i] = static_cast<uint8_t>((high << 4) | low);
-        }
-        return UUID(bytes);
-    }
-
-    std::string UUID::to_hex() const {
-        std::string out;
-        out.reserve(32);
-        for (const uint8_t byte: _data) {
-            out.push_back(HEX_MAP[(byte >> 4) & 0x0F]);
-            out.push_back(HEX_MAP[byte & 0x0F]);
-        }
-        return out;
-    }
+    const UUID::Bytes &UUID::data() const noexcept { return data_; }
 
     uint64_t UUID::timestamp_ms() const {
         uint64_t ms = 0;
-        ms |= static_cast<uint64_t>(_data[0]) << 40;
-        ms |= static_cast<uint64_t>(_data[1]) << 32;
-        ms |= static_cast<uint64_t>(_data[2]) << 24;
-        ms |= static_cast<uint64_t>(_data[3]) << 16;
-        ms |= static_cast<uint64_t>(_data[4]) << 8;
-        ms |= static_cast<uint64_t>(_data[5]);
+        ms |= static_cast<uint64_t>(data_[0]) << 40;
+        ms |= static_cast<uint64_t>(data_[1]) << 32;
+        ms |= static_cast<uint64_t>(data_[2]) << 24;
+        ms |= static_cast<uint64_t>(data_[3]) << 16;
+        ms |= static_cast<uint64_t>(data_[4]) << 8;
+        ms |= static_cast<uint64_t>(data_[5]);
         return ms;
     }
 

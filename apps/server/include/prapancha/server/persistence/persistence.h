@@ -9,6 +9,7 @@
 #include <fstream>
 
 #include <prapancha/server/codec/codec.h>
+#include <prapancha/server/codec/hex_codec.h>
 #include <prapancha/server/model.h>
 #include <prapancha/server/uuid.h>
 
@@ -24,12 +25,12 @@ namespace mehara::prapancha {
     };
 
     template<typename M, typename C>
-        requires Codec<C, M> && std::same_as<typename C::EncodedType, std::string>
+        requires codec::Codec<C, M> && std::same_as<typename C::EncodedType, std::string>
     class FilePersistence {
     public:
-        explicit FilePersistence(std::filesystem::path path) : _dir(std::move(path)) {
-            if (!std::filesystem::exists(_dir)) {
-                std::filesystem::create_directories(_dir);
+        explicit FilePersistence(std::filesystem::path path) : directory_(std::move(path)) {
+            if (!std::filesystem::exists(directory_)) {
+                std::filesystem::create_directories(directory_);
             }
         }
 
@@ -59,13 +60,13 @@ namespace mehara::prapancha {
 
         std::vector<M> all() {
             std::vector<M> results;
-            if (!std::filesystem::exists(_dir)) {
+            if (!std::filesystem::exists(directory_)) {
                 return results;
             }
-            for (const auto &entry: std::filesystem::directory_iterator(_dir)) {
+            for (const auto &entry: std::filesystem::directory_iterator(directory_)) {
                 if (entry.is_regular_file() && entry.path().extension() == ".bin") {
                     auto id_str = entry.path().stem().string();
-                    if (auto model = load(UUID::from_hex(id_str).value())) {
+                    if (auto model = load(codec::HexCodec<UUID>::decode(id_str).value())) {
                         results.push_back(std::move(*model));
                     }
                 }
@@ -76,15 +77,17 @@ namespace mehara::prapancha {
         [[nodiscard]] bool remove(const UUID &id) const { return std::filesystem::remove(get_path(id)); }
 
     private:
-        std::filesystem::path _dir;
+        std::filesystem::path directory_;
 
-        [[nodiscard]] std::filesystem::path get_path(const UUID &id) const { return _dir / (id.to_hex() + ".bin"); }
+        [[nodiscard]] std::filesystem::path get_path(const UUID &id) const {
+            return directory_ / (codec::HexCodec<UUID>::encode(id) + ".bin");
+        }
     };
 
     namespace persistence {
 
         template<template<typename, typename> typename P, Model M, template<typename> typename C, typename... Args>
-            requires Model<M> && std::is_constructible_v<P<M, C<M>>, Args...> && Codec<C<M>, M> &&
+            requires Model<M> && std::is_constructible_v<P<M, C<M>>, Args...> && codec::Codec<C<M>, M> &&
                      Persistence<P<M, C<M>>, M>
         [[nodiscard]] auto create(Args &&...args) {
             return P<M, C<M>>(std::forward<Args>(args)...);

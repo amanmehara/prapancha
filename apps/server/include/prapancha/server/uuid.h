@@ -6,51 +6,35 @@
 #define PRAPANCHA_SERVER_UUID_H_
 
 #include <array>
-#include <optional>
-#include <string>
-#include <string_view>
 
 namespace mehara::prapancha {
 
-    /**
-     * UUID Class
-     * Encapsulates a 16-byte Universally Unique Identifier.
-     * Supports Version 7 (Unix Epoch Timestamp + Randomness) for time-ordered sorting.
-     */
+    /// UUID Class
+    ///
+    /// Encapsulates a 16-byte Universally Unique Identifier.
+    /// Supports Version 7 (Unix Epoch Timestamp + Randomness) for time-ordered sorting.
     class UUID {
     public:
-        using raw_t = std::array<uint8_t, 16>;
+        static constexpr std::size_t bytes_length = 16;
+        static constexpr std::size_t hex_length = bytes_length * 2;
+        using Bytes = std::array<uint8_t, bytes_length>;
 
     private:
-        raw_t _data;
+        Bytes data_;
 
     public:
-        // Constructors
         UUID();
-        explicit UUID(const raw_t &data);
+        explicit UUID(const Bytes &data);
 
-        // Factories
-        /**
-         * Generates a new UUID v7.
-         * Prefix is 48-bit timestamp (ms), followed by 74 bits of entropy.
-         */
+        /// Generates a new UUID v7.
+        /// Prefix is 48-bit timestamp (ms), followed by 74 bits of entropy.
         static UUID generate();
 
-        /**
-         * Creates a UUID from a 32-character hex string (case-insensitive).
-         */
-        static std::optional<UUID> from_hex(std::string_view hex);
+        [[nodiscard]] const Bytes &data() const noexcept;
 
-        // Conversions
-        [[nodiscard]] std::string to_hex() const;
-        [[nodiscard]] const raw_t &raw() const { return _data; }
-
-        /**
-         * Extracts the millisecond timestamp encoded in a v7 UUID.
-         */
+        /// Extracts the millisecond timestamp encoded in a v7 UUID.
         [[nodiscard]] uint64_t timestamp_ms() const;
 
-        // Comparison operators (C++20 spaceship operator for full ordering)
         auto operator<=>(const UUID &other) const = default;
         bool operator==(const UUID &other) const = default;
     };
