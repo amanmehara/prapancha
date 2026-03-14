@@ -45,12 +45,6 @@ namespace mehara::prapancha::codec {
                                    Timestamp{std::chrono::milliseconds{created_at_ptr->as_uint64()}}};
     }
 
-    struct ModelMetadata {
-        UUID id;
-        std::uint64_t version;
-        Timestamp created_at;
-    };
-
     template<typename PasswordBinding>
     struct JsonCodec<UserIdentity<PasswordBinding>> {
         using encoded_type = std::string;
