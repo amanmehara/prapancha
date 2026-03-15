@@ -30,8 +30,8 @@ namespace mehara::prapancha {
         }
         const std::string root_path = std::filesystem::absolute(config.persistence.root_path).string();
         auto user_identity_path = std::filesystem::absolute(
-                root_path + "/" + std::string(UserIdentity<security::Argon2idBinding>::model_name));
-        PersistenceRegistry::initialize_user_identity<security::Argon2idBinding>(user_identity_path);
+                root_path + "/" + std::string(UserIdentity<security::Argon2id>::model_name));
+        PersistenceRegistry::initialize_user_identity<security::Argon2id>(user_identity_path);
         boost::asio::io_context io_context{thread_count};
         auto endpoint = boost::asio::ip::tcp::endpoint{boost::asio::ip::make_address(config.network.host),
                                                        static_cast<unsigned short>(config.network.port)};

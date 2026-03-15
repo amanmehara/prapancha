@@ -66,8 +66,10 @@ namespace mehara::prapancha {
         typename M::State;
     };
 
-    template<typename PasswordBinding>
+    template<typename HashAlgorithm>
     struct UserIdentity : BaseModel {
+        using HashAlgorithmType = HashAlgorithm;
+
         static constexpr std::string_view model_name = "user_identity";
 
         struct [[nodiscard]] Attestation {
@@ -81,7 +83,7 @@ namespace mehara::prapancha {
 
         struct State {
             std::string username;
-            PasswordBinding password_binding;
+            HashAlgorithm::Binding password_binding;
             bool is_admin;
 
             bool operator==(const State &) const = default;
@@ -132,8 +134,8 @@ namespace mehara::prapancha {
 
         const State state;
 
-        template<typename PasswordBinding>
-        static Author create(const UserIdentity<PasswordBinding>::Attestation attestation, State s) {
+        template<typename HashAlgorithm>
+        static Author create(const UserIdentity<HashAlgorithm>::Attestation attestation, State s) {
             return Author(attestation.id(), std::move(s));
         }
 

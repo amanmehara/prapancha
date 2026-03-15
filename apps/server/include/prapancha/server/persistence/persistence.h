@@ -28,6 +28,8 @@ namespace mehara::prapancha {
         requires codec::Codec<C, M> && std::convertible_to<typename C::encoded_type, std::string>
     class FilePersistence {
     public:
+        using ModelType = M;
+
         explicit FilePersistence(std::filesystem::path path) : directory_(std::move(path)) {
             if (!std::filesystem::exists(directory_)) {
                 std::filesystem::create_directories(directory_);

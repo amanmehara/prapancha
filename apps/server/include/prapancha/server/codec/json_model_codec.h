@@ -16,6 +16,7 @@
 #include <prapancha/server/codec/codec.h>
 #include <prapancha/server/codec/hex_codec.h>
 #include <prapancha/server/codec/json_codec.h>
+#include <prapancha/server/codec/json_security_codec.h>
 #include <prapancha/server/model.h>
 
 namespace mehara::prapancha::codec {
@@ -45,22 +46,22 @@ namespace mehara::prapancha::codec {
                                    Timestamp{std::chrono::milliseconds{created_at_ptr->as_uint64()}}};
     }
 
-    template<typename PasswordBinding>
-    struct JsonCodec<UserIdentity<PasswordBinding>> {
+    template<typename HashAlgorithm>
+    struct JsonCodec<UserIdentity<HashAlgorithm>> {
         using encoded_type = std::string;
         using encoded_view = std::string_view;
 
-        static encoded_type encode(const UserIdentity<PasswordBinding> &user_identity) {
+        static encoded_type encode(const UserIdentity<HashAlgorithm> &user_identity) {
             boost::json::object json_object;
             encode_model_metadata(json_object, user_identity);
             json_object["username"] = user_identity.state.username;
             json_object["is_admin"] = user_identity.state.is_admin;
             json_object["password_binding"] =
-                    boost::json::parse(JsonCodec<PasswordBinding>::encode(user_identity.state.password_binding));
+                    JsonCodec<typename HashAlgorithm::Binding>::encode(user_identity.state.password_binding);
             return boost::json::serialize(json_object);
         }
 
-        static std::optional<UserIdentity<PasswordBinding>> decode(encoded_view data) {
+        static std::optional<UserIdentity<HashAlgorithm>> decode(encoded_view data) {
             try {
                 auto json_value = boost::json::parse(data);
                 auto const *json_value_ptr = json_value.if_object();
@@ -73,18 +74,18 @@ namespace mehara::prapancha::codec {
                 if (!username_ptr || !is_admin_ptr || !password_binding_ptr) {
                     return std::nullopt;
                 }
-                auto password_binding_opt =
-                        JsonCodec<PasswordBinding>::decode(boost::json::serialize(*password_binding_ptr));
+                auto password_binding_opt = JsonCodec<typename HashAlgorithm::Binding>::decode(
+                        boost::json::serialize(*password_binding_ptr));
                 if (!password_binding_opt) {
                     return std::nullopt;
                 }
-                typename UserIdentity<PasswordBinding>::State state{std::string(username_ptr->as_string()),
-                                                                    std::move(*password_binding_opt),
-                                                                    is_admin_ptr->as_bool()};
+                typename UserIdentity<HashAlgorithm>::State state{std::string(username_ptr->as_string()),
+                                                                  std::move(*password_binding_opt),
+                                                                  is_admin_ptr->as_bool()};
                 if (auto metadata = decode_model_metadata(*json_value_ptr)) {
-                    return UserIdentity<PasswordBinding>::rehydrate(*metadata, std::move(state));
+                    return UserIdentity<HashAlgorithm>::rehydrate(*metadata, std::move(state));
                 }
-                return UserIdentity<PasswordBinding>::create(std::move(state));
+                return UserIdentity<HashAlgorithm>::create(std::move(state));
             } catch (...) {
                 return std::nullopt;
             }
@@ -170,8 +171,8 @@ namespace mehara::prapancha::codec {
         }
     };
 
-    static_assert(Codec<JsonCodec<UserIdentity<security::Argon2idBinding>>, UserIdentity<security::Argon2idBinding>>);
-    static_assert(Codec<JsonCodec<UserIdentity<security::Sha256Binding>>, UserIdentity<security::Sha256Binding>>);
+    static_assert(Codec<JsonCodec<UserIdentity<security::Argon2id>>, UserIdentity<security::Argon2id>>);
+    static_assert(Codec<JsonCodec<UserIdentity<security::Sha256>>, UserIdentity<security::Sha256>>);
     static_assert(Codec<JsonCodec<Author>, Author>);
     static_assert(Codec<JsonCodec<Post>, Post>);
 

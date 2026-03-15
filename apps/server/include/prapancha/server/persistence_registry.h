@@ -18,10 +18,10 @@
 namespace mehara::prapancha {
 
     using UserIdentityPersistence =
-            std::variant<FilePersistence<UserIdentity<security::Argon2idBinding>,
-                                         codec::JsonCodec<UserIdentity<security::Argon2idBinding>>>,
-                         FilePersistence<UserIdentity<security::Sha256Binding>,
-                                         codec::JsonCodec<UserIdentity<security::Sha256Binding>>>>;
+            std::variant<FilePersistence<UserIdentity<security::Argon2id>,
+                                         codec::JsonCodec<UserIdentity<security::Argon2id>>>,
+                         FilePersistence<UserIdentity<security::Sha256>,
+                                         codec::JsonCodec<UserIdentity<security::Sha256>>>>;
 
     struct PersistenceRegistry {
         inline static std::unique_ptr<UserIdentityPersistence> user_identity_persistence;
