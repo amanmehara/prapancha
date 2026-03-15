@@ -11,7 +11,7 @@ namespace mehara::prapancha {
 
     class VoidController : public BaseController<VoidController> {
     public:
-        static constexpr std::string_view ControllerName = "void";
+        static constexpr std::string_view controller_name = "void";
         using RequiredTraits = std::tuple<policy::WithRequest>;
 
         void handle(auto &&ctx, auto &&sender) {

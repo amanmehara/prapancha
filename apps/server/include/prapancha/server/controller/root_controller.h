@@ -10,7 +10,7 @@
 namespace mehara::prapancha {
     class RootController : public BaseController<RootController> {
     public:
-        static constexpr std::string_view ControllerName = "root";
+        static constexpr std::string_view controller_name = "root";
         using RequiredTraits = std::tuple<policy::WithRequest>;
 
         void handle(auto &&ctx, auto &&sender) {

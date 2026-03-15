@@ -25,7 +25,7 @@ namespace mehara::prapancha {
 
     public:
         explicit RegistrationController(Persistence persistence) : persistence_(std::move(persistence)) {}
-        static constexpr std::string_view ControllerName = "registration";
+        static constexpr std::string_view controller_name = "registration";
         using RequiredTraits = std::tuple<policy::WithRequest>;
 
         void handle(auto &&ctx, auto &&sender) {
@@ -76,11 +76,11 @@ namespace mehara::prapancha {
 
     public:
         explicit DeregistrationController(Persistence persistence) : persistence_(std::move(persistence)) {}
-        static constexpr std::string_view ControllerName = "deregistration";
+        static constexpr std::string_view controller_name = "deregistration";
         using RequiredTraits = std::tuple<policy::WithRequest>;
 
         void handle(auto &&ctx, auto &&sender) {
-            Loggers::App().log_warn([&] { return std::format("{}. 501 NotImplemented!", ControllerName); });
+            Loggers::App().log_warn([&] { return std::format("{}. 501 NotImplemented!", controller_name); });
             http::Response res{http::Status::NotImplemented};
             res.set_header("Content-Type", "text/html; charset=utf-8");
             res.body = "प्रपञ्च — Prapancha: 501 NotImplemented!";
@@ -94,11 +94,11 @@ namespace mehara::prapancha {
 
     public:
         explicit LoginController(Persistence persistence) : persistence_(std::move(persistence)) {}
-        static constexpr std::string_view ControllerName = "login";
+        static constexpr std::string_view controller_name = "login";
         using RequiredTraits = std::tuple<policy::WithRequest>;
 
         void handle(auto &&ctx, auto &&sender) {
-            Loggers::App().log_warn([&] { return std::format("{}. 501 NotImplemented!", ControllerName); });
+            Loggers::App().log_warn([&] { return std::format("{}. 501 NotImplemented!", controller_name); });
             http::Response res{http::Status::NotImplemented};
             res.set_header("Content-Type", "text/html; charset=utf-8");
             res.body = "प्रपञ्च — Prapancha: 501 NotImplemented!";
@@ -112,11 +112,11 @@ namespace mehara::prapancha {
 
     public:
         explicit LogoutController(Persistence persistence) : persistence_(std::move(persistence)) {}
-        static constexpr std::string_view ControllerName = "logout";
+        static constexpr std::string_view controller_name = "logout";
         using RequiredTraits = std::tuple<policy::WithRequest>;
 
         void handle(auto &&ctx, auto &&sender) {
-            Loggers::App().log_warn([&] { return std::format("{}. 501 NotImplemented!", ControllerName); });
+            Loggers::App().log_warn([&] { return std::format("{}. 501 NotImplemented!", controller_name); });
             http::Response res{http::Status::NotImplemented};
             res.set_header("Content-Type", "text/html; charset=utf-8");
             res.body = "प्रपञ्च — Prapancha: 501 NotImplemented!";

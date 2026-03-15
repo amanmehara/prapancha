@@ -9,7 +9,6 @@
 #include <memory>
 #include <string_view>
 
-#include <prapancha/server/codec/codec.h>
 #include <prapancha/server/http.h>
 #include <prapancha/server/logger_registry.h>
 #include <prapancha/server/policy/policy.h>
@@ -18,7 +17,7 @@ namespace mehara::prapancha {
 
     template<typename T>
     concept Controller = requires(T t) {
-        { T::ControllerName } -> std::convertible_to<std::string_view>;
+        { T::controller_name } -> std::convertible_to<std::string_view>;
         typename std::tuple_size<typename T::RequiredTraits>::type;
     };
 
@@ -29,7 +28,7 @@ namespace mehara::prapancha {
         void dispatch(http::Request &&request, Sender &&sender) {
             static_assert(Controller<T>, "Controller concept not satisfied.");
             Loggers::App().log_info([&] {
-                return std::format("Dispatch [{}] {} {} ({} bytes).", T::ControllerName,
+                return std::format("Dispatch [{}] {} {} ({} bytes).", T::controller_name,
                                    http::get_traits(request.method).name, request.target, request.body.size());
             });
             using Traits = T::RequiredTraits;

@@ -11,7 +11,7 @@ namespace mehara::prapancha {
 
     class StatusController : public BaseController<StatusController> {
     public:
-        static constexpr std::string_view ControllerName = "status";
+        static constexpr std::string_view controller_name = "status";
         using RequiredTraits = std::tuple<policy::WithRequest>;
 
         void handle(auto &&ctx, auto &&sender) {
